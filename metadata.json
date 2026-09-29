@@ -1,0 +1,6 @@
+{
+  "name": "MiniMax H3 后台管理系统与工作台",
+  "description": "MiniMax H3 官方模型与 RunningHub 终极版全自动化视频生成后台管理系统与导演中台，集成节点拓扑、任务调度、安全脱敏与多图接力矩阵。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>MV-AUTO-PIPELINE · Gate 5 & Gate 6 门禁审查控制台</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card: #131b2e;
+      --text: #f1f5f9;
+      --accent: #38bdf8;
+      --pass: #22c55e;
+      --fail: #ef4444;
+      --warn: #f59e0b;
+      --border: #1e293b;
+    }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 24px; margin: 0; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+    .badge-gate { background: #1e3a8a; color: #93c5fd; padding: 4px 12px; border-radius: 9999px; font-weight: 600; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .shot-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; }
+    .tag { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+    .tag-lip { background: rgba(34, 197, 94, 0.2); color: var(--pass); border: 1px solid var(--pass); }
+    .tag-nolip { background: rgba(148, 163, 184, 0.1); color: #94a3b8; }
+    .prompt-box { background: #0b1120; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; max-height: 180px; overflow-y: auto; color: #cbd5e1; }
+    .checks { margin-top: 12px; font-size: 12px; }
+    .check-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .dot-pass { width: 8px; height: 8px; border-radius: 50%; background: var(--pass); }
+    .dot-fail { width: 8px; height: 8px; border-radius: 50%; background: var(--fail); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 style="margin:0; font-size: 20px;">MV-AUTO-PIPELINE · 分镜与硬门禁审查</h1>
+      <p style="margin:4px 0 0 0; color:#94a3b8; font-size:13px;">门禁 5（11项提示词机检）与 门禁 6（音乐窗口与口型核对）</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <span class="badge-gate">关 5: 11项机检通过</span>
+      <span class="badge-gate">关 6: 窗口连续守恒</span>
+    </div>
+  </div>
+
+  <div class="grid" id="shotsGrid">
+    <!-- Storyboard shot cards injected here -->
+  </div>
+</body>
+</html>
