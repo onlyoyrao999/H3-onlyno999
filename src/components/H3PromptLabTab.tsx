@@ -707,8 +707,8 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
             </div>
           </div>
 
-          {/* 3 Interactive Suppression Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 4 Interactive Suppression Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Control 1: Suppress BGM */}
             <div
               onClick={() => handleApplySuppression(!suppressBgm, enforceLipsStill)}
@@ -742,14 +742,14 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-white">
                   <EyeOff className="w-4 h-4 text-red-400" />
-                  <span>2. 【硬门禁】严禁生成字幕 (Zero Subtitle Gate)</span>
+                  <span>2. 【硬门禁】严禁生成字幕</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-red-500/30 text-red-200 border border-red-500/50">
-                  强制纯净 0 字幕
+                  纯净 0 字幕
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 leading-relaxed">
-                <strong>双向彻底杜绝：</strong>正向提示词绝不提“no subtitles”类反向敏感词，负向词库强制注入 <code>subtitles, lyrics, captions, 台词条, 压屏文字...</code>，全片输出 100% 电影级无字纯净底片！
+                <strong>双向彻底杜绝：</strong>正向提示词绝不提“no subtitles”类反向敏感词，负向词库强制注入 <code>subtitles, lyrics, captions...</code>。
               </p>
             </div>
 
@@ -765,7 +765,7 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-white">
                   <MicOff className="w-4 h-4 text-cyan-400" />
-                  <span>3. 强制嘴唇静止 / 禁止开口</span>
+                  <span>3. 嘴唇静止 / 禁止开口</span>
                 </div>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                   enforceLipsStill ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-500'
@@ -774,7 +774,25 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                非对白镜强制注入 <code>mouth naturally closed, lips completely still</code>，负向压制 <code>singing, mouth open, lip-sync</code>，杜绝远景乱抽动。
+                非对白镜强制注入 <code>mouth naturally closed, lips completely still</code>，负向压制 <code>singing, mouth open</code>。
+              </p>
+            </div>
+
+            {/* Control 4: Character Surface Purity - 永久硬门禁锁死 */}
+            <div
+              className="p-4 rounded-xl border transition-all cursor-pointer space-y-3 bg-emerald-950/40 border-emerald-500/80 ring-2 ring-emerald-500/40 shadow-xl"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-white">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>4. 【硬门禁】机体/服装防涂鸦锁</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-500/50">
+                  绝缘防杂质
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                <strong>防环境注意力外溢：</strong>坚决杜绝背景霓虹在腰部冒出 M 标、大腿长出挂件、衣服冒出印花。正向锚定 <code>pristine solid finish</code>，负向压制 <code>stickers, decals, waist logo, body graffiti, hanging charms</code>。
               </p>
             </div>
           </div>
@@ -804,18 +822,22 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
               {currentNegativePrompt}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-[11px] font-mono text-slate-400">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 text-[11px] font-mono text-slate-400">
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-red-400 font-bold">画面纯净与字幕禁用:</span>
-                <p className="text-slate-500 text-[10px]">text, words, subtitles, lyrics, captions, watermark, logo, typography, letters...</p>
+                <p className="text-slate-500 text-[10px] truncate">subtitles, captions, text, lyrics, watermark...</p>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-purple-400 font-bold">配乐防杂音与断层:</span>
-                <p className="text-slate-500 text-[10px]">background music, noisy score, discordant soundtrack, distorted audio, bgm, humming...</p>
+                <p className="text-slate-500 text-[10px] truncate">background music, noisy score, bgm, humming...</p>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                 <span className="text-cyan-400 font-bold">嘴唇静止与非口型控制:</span>
-                <p className="text-slate-500 text-[10px]">singing, mouth open, lip-sync, talking, speaking, vocalizing, open lips, moving mouth...</p>
+                <p className="text-slate-500 text-[10px] truncate">singing, mouth open, lip-sync, talking...</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                <span className="text-emerald-400 font-bold">机甲/服装防涂鸦防贴纸:</span>
+                <p className="text-slate-500 text-[10px] truncate">stickers, decals, waist logo, hanging charms, graffiti...</p>
               </div>
             </div>
           </div>

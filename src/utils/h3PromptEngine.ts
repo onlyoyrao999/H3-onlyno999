@@ -498,7 +498,7 @@ detailed_description:
 说完嘴唇抿成一条线，喉结滚一下，把更多话咽回去；不再接话，烟仍在指间搓着，选了沉默不抬眼。
 【镜头】${arConfig.label} 中景双人，餐桌侧面固定镜头，与 Shot 1 机位一致。
 【音效】搓烟纸细微沙沙声贯穿；说完后的换气与吞咽声；底噪贯穿；无对白外的言语。
-【约束】五官稳定，面部不扭曲，口型与台词同步，画面无跳变；人物外观与服装前后一致，暖黄偏暗光线一致；画面纯净电影画质，画面严禁任何硬编码字幕与文字覆盖，无台词条，无水印；排除表情夸张、动作幅度过大或任何笑容轻松表情。`;
+【约束】五官稳定，面部不扭曲，口型与台词同步，画面无跳变；人物外观与服装前后一致，暖黄偏暗光线一致；人物机体与衣物表面严格保持纯净一致，严禁出现任何额外贴纸、腰部徽标Logo、身体涂鸦、大腿挂件或杂质印花；画面纯净电影画质，画面严禁任何硬编码字幕与文字覆盖，无台词条，无水印；排除表情夸张、动作幅度过大或任何笑容轻松表情。`;
     }
 
     const speechAction = enforceLipsStill
@@ -524,10 +524,10 @@ ${arConfig.label} (${arConfig.name}) | ComfyUI Node 456: ${arConfig.comfyValue} 
 Inside the opulent ballroom, a tense confrontation unfolds along the marble aisle as characters exchange decisive words. (Total duration: 15.083s / 362 frames).
 
 [retention_analysis]
-<Subject 1>, <Subject 2>, <Subject 3> and <Subject 4> are preserved from <Picture 1>, <Picture 2> and <Picture 3>.
+<Subject 1>, <Subject 2>, <Subject 3> and <Subject 4> are preserved from <Picture 1>, <Picture 2> and <Picture 3>. All character surfaces, clothing, and chassis maintain pure texture consistency from reference images: strictly zero extra stickers, zero waist emblems, zero painted decals, zero dangling accessories.
 
 [detailed_description]
-The grade is locked and identical in every shot: the same exposure, warm amber highlights, and contrast curve from the first shot to the last. No two shots repeat the same framing.
+The grade is locked and identical in every shot: the same exposure, warm amber highlights, and contrast curve from the first shot to the last. No two shots repeat the same framing. ${FORBIDDEN_WORDS_LEXICON.characterPurityPositivePhrase}
 ${framingRule}
 [Shot 1｜0–5秒] The shot opens on a wide shot of <Subject 4> taken from the far side of the room at chest height, the ivory-draped tables spread across both sides of the frame. <Subject 1> (${speakerId}) stands small in the aisle, the whole of his body from head to feet completely inside the picture. ${speechAction}
 【音效】皮鞋踏在光滑大理石上的沉稳脚步声、衣物轻微摩擦声、宴会远端低语底噪。
@@ -631,7 +631,18 @@ export const FORBIDDEN_WORDS_LEXICON = {
   bgmNegativeSuppression: [
     'background music', 'noisy score', 'discordant soundtrack', 'distorted audio',
     'bgm', 'humming', 'audio clipping', 'clashing instruments', 'cacophony'
-  ]
+  ],
+  // 4. 角色表面不可变性与防杂质涂鸦挂件禁令 (彻底杜绝环境注意力外溢导致的腰部Logo、大腿挂件、乱码贴纸、衣服印花)
+  characterSurfacePurityAndDecals: [
+    'stickers', 'decals', 'body graffiti', 'painted emblems', 'waist logo',
+    'hanging charms', 'dangling ornaments', 'hanging accessories', 'cartoon decals',
+    'body art', 'scratches', 'messy armor', 'decorated chassis', 'clothing patches',
+    'brooches', 'badges on clothes', 'printed brand logo', 'unwanted tattoos',
+    'decorative stickers', 'body stamps', 'pins', 'keychain', 'random accessories',
+    '贴纸', '涂鸦', '徽标', '印花', '挂件', '腰部Logo', '大腿挂饰', '乱码标贴', '车贴'
+  ],
+  characterPurityPositivePhrase:
+    'The character chassis, body armor, and clothing surfaces remain 100% pristine, solid finish identical to reference: strictly zero extra stickers, zero decals, zero waist emblems, zero painted graffiti, zero dangling trinkets on thighs or belt, unadorned and solid texture.'
 };
 
 /**
@@ -640,10 +651,12 @@ export const FORBIDDEN_WORDS_LEXICON = {
 export function buildCompliantNegativePrompt(options?: {
   isLipSync?: boolean;
   suppressBgm?: boolean;
+  suppressDecalsAndGraffiti?: boolean;
   extraNegatives?: string;
 }): string {
   const isLip = options?.isLipSync ?? false;
   const suppressBgm = options?.suppressBgm ?? true;
+  const suppressDecals = options?.suppressDecalsAndGraffiti ?? true; // 默认永久锁死角色防涂鸦锁
 
   const tags: string[] = [...FORBIDDEN_WORDS_LEXICON.screenTextAndSubtitles];
 
@@ -652,6 +665,9 @@ export function buildCompliantNegativePrompt(options?: {
   }
   if (suppressBgm) {
     tags.push(...FORBIDDEN_WORDS_LEXICON.bgmNegativeSuppression);
+  }
+  if (suppressDecals) {
+    tags.push(...FORBIDDEN_WORDS_LEXICON.characterSurfacePurityAndDecals);
   }
 
   tags.push('cartoon', '3d render', 'distorted anatomy', 'jitter', 'flicker', 'lowres');

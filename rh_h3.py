@@ -197,6 +197,9 @@ class RunningHubH3UltimateDispatcher:
             # 若无约束，注入纯净底片约束
             if "【约束】" in prompt and "硬编码字幕" not in prompt:
                 prompt = prompt.replace("【约束】", "【约束】画面纯净无硬编码字幕与文字覆盖，无台词条，无水印；")
+            # 注入角色表面不可变性与防涂鸦挂件锁 (杜绝环境注意力外溢导致的腰部Logo、大腿挂件、乱码贴纸)
+            if "【约束】" in prompt and "额外贴纸" not in prompt:
+                prompt = prompt.replace("【约束】", "【约束】人物表面与服装严格保持纯净一致，严禁出现任何额外贴纸、腰部Logo、身体涂鸦、大腿挂件饰物或杂质印花；")
         if not self.api_key:
             print(f"[!] Warning: RUNNINGHUB_API_KEY 未设置，进入沙盒验证模式 (Workflow ID: {workflow_id})。")
             simulated_video = f"https://www.runninghub.cn/output/sample_{shot_id}_{int(duration)}s.mp4"

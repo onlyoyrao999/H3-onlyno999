@@ -29,7 +29,8 @@ const SPEC_FILES = [
     [subject_definitions] ➔ [summary] ➔ [retention_analysis] ➔ [detailed_description] ➔ [overall_soundscape] ➔ [non_diegetic_music]
   * 自动注入 (Sx) 角色音色绑定与 <d> 台词口型发声标签；
   * 执行严格的【零字幕硬门禁】：坚决剔除 "no subtitles/no text" 反向敏感词，防止画面烧录乱码字；
-  * 执行【防裁头镜头控制】：将特写安全后退至胸口或中近景，确保发声时头部完整。
+  * 执行【防裁头镜头控制】：将特写安全后退至胸口或中近景，确保发声时头部完整；
+  * 执行【角色表面防污染绝缘锁】：严防环境注意力外溢导致的腰部莫名长出 Logo 徽标、大腿长出悬挂饰品、衣服冒出杂质印花（正向注入 pristine solid finish，负向压制 stickers, decals, waist logo, hanging charms, body graffiti）。
 - **输出物**：符合 H3 官方 Ref2VA 契约的标准 Payload。
 
 ### 3. 【Skill 3 插拔】云端一键生图/生视频接口 (Cloud One-Click Image/Video Driver)
