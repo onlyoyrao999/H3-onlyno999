@@ -11,6 +11,12 @@
  * 5. 直通 MiniMax H3 官流终极版 Node 137 (ref_image_0) / Node 139 (ref_image_1) / Node 175 (视频首帧接力)。
  */
 
+import {
+  render1To1SceneComposite,
+  sliceThreeViewTurnaround,
+  SlicedThreeViews
+} from '../utils/threeViewMattingEngine';
+
 export type FusionGenre = 'commercial' | 'short_drama' | 'mv';
 export type ShotScaleType = 'ECU' | 'CU' | 'MCU' | 'MS' | 'FS';
 
@@ -53,6 +59,11 @@ export interface CharacterFusionRequest {
   scene: FusionScenePreset;
   customBackgroundUrl?: string;
   customBackgroundName?: string;
+  customCharacterUrl?: string; // 用户上传的三视图 / 白底定妆照真实原图
+  customCharacterName?: string;
+  customThreeViewUrls?: SlicedThreeViews;
+  useThreeViewSlicing?: boolean;
+  mattingTolerance?: number;
   customPrompt?: string;
   shotScale: ShotScaleType;
   lockChestText: boolean; // Must be true to preserve "铁蛋" / Logo
@@ -74,9 +85,11 @@ export interface CharacterFusionResponse {
   executionTimeMs: number;
   h3SixSectionPrompt: string;
   pythonCliCommand: string;
+  slicedThreeViews?: SlicedThreeViews;
   nodeInjectionMappings: {
-    node137_ref_image_0: string; // Picture 1
-    node139_ref_image_1: string; // Picture 2 (Chest detail crop)
+    node137_ref_image_0: string; // Picture 1 正面全身定妆卡
+    node139_ref_image_1: string; // Picture 2 半身/胸口特写卡
+    node167_ref_image_2?: string; // Picture 3 侧身/下肢细节卡
     node175_vhs_loadvideo_startframe: string;
   };
   logs: string[];
@@ -281,8 +294,32 @@ export const COMPREHENSIVE_SCENE_PRESETS: FusionScenePreset[] = [
 export async function generate1To1UniversalFusionComposite(
   req: CharacterFusionRequest
 ): Promise<string> {
-  const { character, scene, customBackgroundUrl, shotScale, lockChestText, lockFaceLed, aspectRatio, shadowIntensity = 0.5 } = req;
+  const { character, scene, customBackgroundUrl, customCharacterUrl, shotScale, lockChestText, lockFaceLed, aspectRatio, shadowIntensity = 0.5, mattingTolerance = 38 } = req;
   
+  // 🌟 Priority 1: If user provided their own character/turnaround image, perform true 1:1 photorealistic scene integration
+  const targetCharUrl = customCharacterUrl || (character && character.avatarUrl && character.avatarUrl.length > 10 ? character.avatarUrl : null);
+  if (targetCharUrl) {
+    try {
+      const bgToUse = customBackgroundUrl || scene.thumbnailUrl;
+      const compositeResult = await render1To1SceneComposite({
+        characterImgUrl: targetCharUrl,
+        backgroundUrl: bgToUse,
+        shotScale,
+        aspectRatio,
+        shadowIntensity,
+        ambientHex: scene.lightingColor?.ambientHex,
+        rimHex: scene.lightingColor?.rimHex,
+        mattingTolerance,
+        emblemText: lockChestText ? character.chestEmblemText : undefined
+      });
+      if (compositeResult && compositeResult.length > 100) {
+        return compositeResult;
+      }
+    } catch (err) {
+      console.warn('[characterFusionService] Photorealistic composite fallback to vector canvas:', err);
+    }
+  }
+
   let width = 576;
   let height = 1024;
   if (aspectRatio === '16:9') {
@@ -685,16 +722,30 @@ export async function dispatch1To1UniversalSceneFusion(
   log(`[Synthesis] Generating 24fps motion-ready keyframe at ${req.aspectRatio}...`);
   req.onProgress?.(85, '生成高保真 1:1 关键帧', `[ImageGen] 渲染完成，执行画质检测与胸口文字对齐审计...`);
 
+  // 1:1 Scene Fusion Keyframe
   const keyframeUrl = await generate1To1UniversalFusionComposite(req);
+
+  // 🌟 Turnaround Decomposition for H3 multi-view slots
+  let slicedThreeViews: SlicedThreeViews | undefined = req.customThreeViewUrls;
+  const sourceToSlice = req.customCharacterUrl || req.character?.avatarUrl;
+  if (!slicedThreeViews && sourceToSlice && req.useThreeViewSlicing !== false) {
+    try {
+      log(`[ThreeView Turnaround] 正在对三视图执行高精度切片与多模态定妆拆解...`);
+      slicedThreeViews = await sliceThreeViewTurnaround(sourceToSlice);
+      log(`[ThreeView Turnaround] 拆解完毕：正面全身卡(Node 137)、半身特写卡(Node 139)、侧身细节卡(Node 167)`);
+    } catch (e) {
+      log(`[ThreeView Turnaround] 切片提示: ${e}`);
+    }
+  }
 
   log(`[Validation Pass] 角色/产品一致性: 99.8% | 胸标【${req.character.chestEmblemText}】留存率: 100.0%`);
   log(`[H3 Node Binding] 成功自动绑定 RunningHub H3 Node 137 (ref_image_0) 与 Node 139 (ref_image_1)`);
   req.onProgress?.(100, '融合完成并入库', `[ImageGen] 1:1 场景融入成功！可直接下载或一键派发至 MiniMax H3 渲染任务！`);
 
   // H3 Official Six-Section Prompt
-  const h3SixSectionPrompt = `[镜头景别与运镜]：${req.shotScale} 景别，24fps 影视级运镜，${req.aspectRatio === '9:16' ? '竖屏 736x1280' : '横屏 1280x736'} 画幅，镜头稳定平滑推近。
+  const h3SixSectionPrompt = `[镜头景别与运镜]：${req.shotScale} 景别，24fps 影视级运镜，${req.aspectRatio === '9:16' ? '竖屏 736x1280' : req.aspectRatio === '1:1' ? '1:1 正方形画幅' : '横屏 1280x736'} 画幅，镜头稳定平滑推近。
 [光影与色彩]：${req.scene.ambientLighting}，地面自然物理接触阴影，边缘反射高光。
-[核心主体定妆]：<Picture 1> ${req.character.name}，银灰金属机甲，右胸板强力镌刻【${req.character.chestEmblemText}】黑色字体，面部蓝色 LED 表情屏。
+[核心主体定妆]：<Picture 1> ${req.character.name}，保持三视图原生面部轮廓、发型发色与服饰剪裁，右胸板强力镌刻【${req.character.chestEmblemText}】黑色字体。
 [连续动作与物理规律]：${req.customPrompt || req.scene.defaultActionPrompt}。动作富有张力，符合自然物理受力反馈。
 [环境音效与对白]：室内环境细微机械低鸣，脚步受力踩踏声，高质量纯净干声音频对齐。
 [画质与渲染参数]：MiniMax H3 官方 Ref2VA 规范，100% 杜绝变脸漂移，无文字水印杂色，8K 电影级高精度质感。`;
@@ -703,8 +754,9 @@ export async function dispatch1To1UniversalSceneFusion(
   const pythonCliCommand = `python3 rh_h3.py \\
   --shot P02 \\
   --duration 10.0 \\
-  --ref-image-0 "workspace/fused_${req.scene.id}_keyframe.png" \\
-  --ref-image-1 "workspace/emblem_${req.character.id}_detail.png" \\
+  --ref-image-0 "${slicedThreeViews?.front || 'workspace/fused_front_keyframe.png'}" \\
+  --ref-image-1 "${slicedThreeViews?.detail || 'workspace/emblem_detail.png'}" \\
+  --ref-image-2 "${slicedThreeViews?.side || 'workspace/side_detail.png'}" \\
   --prompt "${(req.customPrompt || req.scene.defaultActionPrompt).slice(0, 80)}..." \\
   --api-key "YOUR_RUNNINGHUB_API_KEY"`;
 
@@ -719,9 +771,11 @@ export async function dispatch1To1UniversalSceneFusion(
     executionTimeMs: Date.now() - startTime,
     h3SixSectionPrompt,
     pythonCliCommand,
+    slicedThreeViews,
     nodeInjectionMappings: {
-      node137_ref_image_0: keyframeUrl,
-      node139_ref_image_1: keyframeUrl,
+      node137_ref_image_0: slicedThreeViews?.front || keyframeUrl,
+      node139_ref_image_1: slicedThreeViews?.detail || keyframeUrl,
+      node167_ref_image_2: slicedThreeViews?.side || undefined,
       node175_vhs_loadvideo_startframe: keyframeUrl
     },
     logs
