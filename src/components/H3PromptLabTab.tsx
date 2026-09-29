@@ -620,28 +620,22 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
               </p>
             </div>
 
-            {/* Control 2: Suppress Screen Text */}
+            {/* Control 2: Suppress Screen Text - 硬门禁锁死 */}
             <div
-              onClick={() => setSuppressScreenText(!suppressScreenText)}
-              className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 ${
-                suppressScreenText
-                  ? 'bg-red-950/30 border-red-500/60 ring-1 ring-red-500/30 shadow-lg'
-                  : 'bg-slate-900/60 border-slate-800 hover:bg-slate-900'
-              }`}
+              onClick={() => setSuppressScreenText(true)}
+              className="p-4 rounded-xl border transition-all cursor-pointer space-y-3 bg-red-950/40 border-red-500/80 ring-2 ring-red-500/40 shadow-xl"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-white">
                   <EyeOff className="w-4 h-4 text-red-400" />
-                  <span>2. 禁止出现字幕与文字</span>
+                  <span>2. 【硬门禁】严禁生成字幕 (Zero Subtitle Gate)</span>
                 </div>
-                <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                  suppressScreenText ? 'bg-red-500/20 text-red-300' : 'bg-slate-800 text-slate-500'
-                }`}>
-                  {suppressScreenText ? '纯净 0 字幕' : '未压制'}
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold bg-red-500/30 text-red-200 border border-red-500/50">
+                  强制纯净 0 字幕
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                彻底删除正向 "no text/subtitles"（避免 H3 反向敏感），并在 Negative 中强力封死 <code>text, subtitles, lyrics, watermark</code>，由后期统一挂载 SRT。
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                <strong>双向彻底杜绝：</strong>正向提示词绝不提“no subtitles”类反向敏感词，负向词库强制注入 <code>subtitles, lyrics, captions, 台词条, 压屏文字...</code>，全片输出 100% 电影级无字纯净底片！
               </p>
             </div>
 

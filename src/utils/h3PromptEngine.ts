@@ -498,7 +498,7 @@ detailed_description:
 说完嘴唇抿成一条线，喉结滚一下，把更多话咽回去；不再接话，烟仍在指间搓着，选了沉默不抬眼。
 【镜头】${arConfig.label} 中景双人，餐桌侧面固定镜头，与 Shot 1 机位一致。
 【音效】搓烟纸细微沙沙声贯穿；说完后的换气与吞咽声；底噪贯穿；无对白外的言语。
-【约束】五官稳定，面部不扭曲，口型与台词同步，画面无跳变；人物外观与服装前后一致，暖黄偏暗光线一致；排除表情夸张、动作幅度过大或任何笑容轻松表情。`;
+【约束】五官稳定，面部不扭曲，口型与台词同步，画面无跳变；人物外观与服装前后一致，暖黄偏暗光线一致；画面纯净电影画质，画面严禁任何硬编码字幕与文字覆盖，无台词条，无水印；排除表情夸张、动作幅度过大或任何笑容轻松表情。`;
     }
 
     const speechAction = enforceLipsStill
@@ -610,11 +610,14 @@ ${musicDirective}`;
  * 3. Background Music Suppression (静止/禁止模型生成混杂 BGM，为后期无损全曲 Master BGM 铺底让路)
  */
 export const FORBIDDEN_WORDS_LEXICON = {
-  // 1. 画面文字与字幕禁止词 (Negative Prompt 强制注入项)
+  // 1. 画面文字与字幕禁止词 (Negative Prompt 强制注入项，100% 杜绝画面出现硬字幕、台词条、乱码文字)
   screenTextAndSubtitles: [
-    'text', 'words', 'subtitles', 'lyrics', 'captions', 'watermark', 'logo',
-    'typography', 'letters', 'signature', 'username', 'font', 'burned-in text',
-    'on-screen text', 'overlaid words'
+    'subtitles', 'closed captions', 'captions', 'lyrics', 'burned-in text',
+    'on-screen text', 'overlaid words', 'lower third', 'subtitles bar',
+    'dialogue box', 'karaoke subtitles', 'chinese subtitles', 'english subtitles',
+    'text', 'words', 'watermark', 'logo', 'typography', 'letters', 'signature',
+    'username', 'font', 'credits', 'timestamps',
+    '字幕', '中文字幕', '双语字幕', '台词条', '压屏文字', '歌词字幕', '卡拉OK字幕', '滚动字幕', '黑底字幕条', '水印'
   ],
   // 2. 嘴唇静止 / 禁止开口词 (非发声段负向压制)
   mouthStillSuppression: [

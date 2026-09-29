@@ -183,11 +183,20 @@ class RunningHubH3UltimateDispatcher:
         workflow_id: str = OFFICIAL_ULTIMATE_WORKFLOW_ID,
         poll_interval: int = 5,
         max_poll_time: int = 600,
-        auto_extract_keyframe: bool = True
+        auto_extract_keyframe: bool = True,
+        no_subtitles: bool = True
     ) -> Dict[str, Any]:
         """
         发送 10 秒 / 15 秒分段任务，并在完成后自动截取关键帧为下一段做参考图接力
+        no_subtitles: 严格禁止生成字幕，清除反向敏感词并锁死纯净画质
         """
+        if no_subtitles and prompt:
+            # 清除反向敏感词 (no subtitles/no text 反而会诱发模型画字幕)
+            for bad_word in ["no subtitles", "no subtitle", "no text", "no words", "无字幕", "不要字幕"]:
+                prompt = prompt.replace(bad_word, "")
+            # 若无约束，注入纯净底片约束
+            if "【约束】" in prompt and "硬编码字幕" not in prompt:
+                prompt = prompt.replace("【约束】", "【约束】画面纯净无硬编码字幕与文字覆盖，无台词条，无水印；")
         if not self.api_key:
             print(f"[!] Warning: RUNNINGHUB_API_KEY 未设置，进入沙盒验证模式 (Workflow ID: {workflow_id})。")
             simulated_video = f"https://www.runninghub.cn/output/sample_{shot_id}_{int(duration)}s.mp4"
@@ -355,6 +364,7 @@ def main():
     parser.add_argument("--ref-video", type=str, default="", help="上一段成片视频路径")
     parser.add_argument("--ref-image-0", type=str, default="", help="参考图 0 (Picture 1，可传入上一段抽取的人物卡)")
     parser.add_argument("--ref-image-1", type=str, default="", help="参考图 1 (Picture 2，若有新角色则传入文生图卡)")
+    parser.add_argument("--no-subtitles", action="store_true", default=True, help="严格禁止生成字幕 (默认开启，锁定 100% 纯净无字底片)")
     
     args = parser.parse_args()
     dispatcher = RunningHubH3UltimateDispatcher(api_key=args.api_key)
@@ -367,7 +377,8 @@ def main():
         ref_video_prev=args.ref_video,
         ref_image_0=args.ref_image_0,
         ref_image_1=args.ref_image_1,
-        workflow_id=args.workflow_id
+        workflow_id=args.workflow_id,
+        no_subtitles=args.no_subtitles
     )
     print(json.dumps(res, indent=2, ensure_ascii=False))
 

@@ -140,7 +140,10 @@ export function validateGate5Prompt(shot: StoryboardShot, hasProtagonist: boolea
   const textSuppressKeywords = ['text', 'subtitles', 'lyrics', 'words', 'watermark', 'captions'];
   const hasTextSuppress = textSuppressKeywords.some(k => negLower.includes(k));
   
-  const forbiddenScreenText = ['subtitles on screen', 'burned-in text', 'lyrics text overlaid', 'words written on screen', 'watermark on video'];
+  const forbiddenScreenText = [
+    'subtitles on screen', 'burned-in text', 'lyrics text overlaid', 'words written on screen',
+    'watermark on video', '带字幕', '显示字幕', '屏幕字幕', '台词字幕', '中文字幕', '滚动字幕'
+  ];
   const hasTextInstruction = forbiddenScreenText.some(t => promptLower.includes(t));
   
   const hasNegLip = negLower.includes('singing') || negLower.includes('lip-sync') || negLower.includes('mouth open');
