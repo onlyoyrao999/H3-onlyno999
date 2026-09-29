@@ -182,7 +182,81 @@ out-of-sync audio, mouth opening during silence, unnatural jaw distortion, robot
   ffmpeg -y -i final_video_concat.mp4 -i user_original_song.mp3 \\
     -map 0:v:0 -map 1:a:0 \\
     -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4
-  \`\`\``
+  \`\`\`
+
+---
+
+## 四、核心审美界线：画面随音乐走 + 克制对口型 vs 夸张大唱 (Music-Paced Visuals vs. Theatrical Singing)
+用户核心诉求：“只是让画面跟着这个参考音乐走，口型对上，而不是说这种他唱一遍”。
+
+### 1. 为什么必须严格禁止“他唱一遍”？
+- **普通生视频误区**：如果提示词写成“singing vocals/pop singer”，AI 模型会把人物变成卡拉OK现场：大张嘴嘶吼、下巴拉长失真、脖子青筋暴起、甚至凭空长出手持麦克风，彻底破坏时尚感与电影感。
+- **商业广告/电影级真实做法**：
+  * **画面主体**：画面镜头（推拉摇移、景深虚化、角色走位）严格跟着**参考音乐的节奏鼓点与节拍（BPM/Rhythm）**律动；
+  * **口型对位**：口型仅作**克制、松弛、自然的同步对位（Subtle Speech-like Lip-Matching）**，角色神态从容自信、高级内敛，绝不大喊大叫；
+  * **非歌词时段**：人物闭嘴、微晃、眼神交流，让视觉与音乐旋律共振。
+
+### 2. Agent 焊死的正负向硬门禁规范：
+- **正向提示词锁定 (Positive Phrase)**：
+  \`\`\`text
+  The visual pacing, camera glides, and character motion flow seamlessly with the tempo and mood of <Audio 1>. Lip-sync is restrained, cinematic, and understated—natural speech-like articulation aligned with the phrasing, maintaining calm facial composure and stylish attitude without wide-open singing mouth deformation.
+  \`\`\`
+- **负向提示词硬压 (Negative Suppression)**：
+  \`\`\`text
+  screaming, shouting, exaggerated singing, wide open mouth screaming, theatrical operatic performance, karaoke singing, distorted jaw, strained neck, holding microphone, overacting singing
+  \`\`\`
+
+---
+
+## 五、演绎风格根据歌曲风格自动切换矩阵 (Automatic Song Genre-to-Acting Style Matrix)
+用户核心诉求：“那个演绎风格。根据歌曲风格自动切换”。
+
+### 1. 为什么不能千篇一律？
+同一套人物形象，在民谣慢歌中如果动作过于剧烈会显得浮夸轻佻；在说唱中如果低头伤感会丧失律动与态度；在赛博电音中若眼神飘忽则缺乏未来感。
+**因此，Agent 在接收歌曲音频（或歌曲名）时，必须执行“声学/曲风特征分析”，自动切换人物的神态、运镜、光影与口型节律！**
+
+### 2. 八大经典曲风与演绎风格映射矩阵：
+| 歌曲流派 (Genre) | 节奏 (BPM) 与声学特征 | 自动切换演绎神态 (Acting Mood) | 专属镜头动力学 (Camera Motion) | 光影与视效氛围 (Atmosphere) | 口型与身体律动 (Lip & Body Groove) |
+|---|---|---|---|---|---|
+| **深情慢歌 / 伤感民谣** | 60-80 BPM, 钢琴/木吉他, 舒缓呼吸 | 忧郁深沉、眼泛微光、低眉思索、轻咽微叹，沉静内敛 | 浅景深慢速推镜 (f/1.4 Dolly-in), 呼吸感轻微游移 | 窗边雨丝微光、柔和逆光烟尘、低饱和温暖胶片色调 | 极轻微唇瓣开合，气声弱音对齐，间奏完全闭合低头沉思 |
+| **说唱律动 / 潮流R&B** | 85-125 BPM, 808重低音, 切分节奏 | 自信不羁、从容霸气、侧颈微扬、眼神锁定镜头、挑眉从容 | 低角度推拉抓拍 (Low-Angle Glide), 随重音微幅晃动 | 城市街头霓虹溢彩、潮湿反光沥青、高反差明暗剪影 | 随808鼓点身体律动沉肩微晃，咬字利落微动，从不大张嘴唱 |
+| **赛博电子 / 潮酷电音** | 120-135 BPM, 强劲合成器四四拍, 脉冲低音 | 冷峻超然、机械式优雅、深邃凝视、疏离神秘感 | 平滑轨道环绕运镜 (Orbital Glide), 激光穿梭视角 | 赛博蓝紫霓虹、全息光晕弥散、冷调金属反光与体积烟雾 | 唇形精炼利落，配合电子琶音节拍，间奏完全静止如雕塑 |
+| **热血摇滚 / 力量乐队** | 120-160 BPM, 失真电吉他、重鼓强拍 | 桀骜坚定、下颌微收、眼神充满电性张力、压迫感 | 强拍冲击式微抖动 (Punchy Snap), 动态手持呼吸运镜 | 舞台高反差顶光 (Chiaroscuro), 钨丝灯边缘硬轮廓光 | 随失真吉他重音眼神聚焦，唇齿开闭干脆有力，严禁五官扭曲 |
+| **复古微醺 / 慵懒爵士** | 70-110 BPM, 萨克斯风、低音提琴、轻摇摆 | 迷离慵懒、微醺笑意、半阖眼眸、自在漫步、松弛高雅 | 缓慢环形横摇 (Slow Arch Pan), 柔焦怀旧电影镜头 | 暖琥珀色威士忌酒吧暗调、百叶窗斑驳光影、天鹅绒质感 | 悠闲随性微张轻合，随摇摆拍微侧头部，松弛自然无刻意感 |
+| **灵动流行 / 阳光轻快** | 110-128 BPM, 清脆铜管、明朗贝斯线、元气旋律 | 阳光治愈、元气灵动、眉眼含笑、亲和力拉满 | 灵巧跟随平移、轻快前后推拉变焦 (Smooth Zoom) | 干净透亮自然日光、高调清透色彩、通透空气感 | 轻盈语流开合，字句清爽，换气间隙自然抿嘴微笑 |
+| **唯美古风 / 仙侠国潮** | 55-90 BPM, 笛箫古筝琵琶、悠扬空灵弦乐 | 仙风道骨、清冷出尘、顾盼生姿、敛气凝神、宛若画中 | 烟雨微步悬浮慢移 (Floating Drone), 如长卷铺展 | 青黛水墨意境、薄雾晨光、竹影或月色冷光、飘逸微风 | 唇齿含蓄微启，吐气如兰，曲尽闭息若有所思 |
+| **大气史诗 / 电影交响** | 60-140 BPM, 宏大管弦、重击定音鼓、磅礴和声 | 庄严肃穆、坚毅傲岸、胸怀广袤、凝望远方地平线 | 宏大航拍后拉 (Epic Crane Pull-back), 恢弘景深拉开 | 黄金时刻漫天晚霞、云海破晓日光、史诗质感高动态范围 | 沉稳尊贵，仅在主旋律高潮做神圣发音对位，尽显磅礴气场 |
+
+### 3. Agent 自动化执行规则：
+1. **自动曲风嗅探**：根据用户上传文件名（如 \`晴天.mp3\`、\`trap_groove.wav\`、\`cyber_run.flac\`）或用户 prompt 中的歌手/歌曲名自动映射至上述 8 大流派；
+2. **提示词动态编译**：自动将对应的 \`actingMood\`、\`cameraMovement\`、\`lightingAtmosphere\`、\`lipSyncRule\` 注入 H3 Ref2VA 的 \`[summary]\` 与 \`[detailed_description]\`；
+3. **安全防变形兜底**：无论何种曲风，负向提示词必须严焊 \`screaming, shouting, wide open mouth screaming, distorted jaw\`，绝对坚守“高级克制口型对位，决不张大嘴干唱”。
+
+---
+
+## 六、极简纯粹音乐驱动对口型执行规范 (Pure Simple Music Lip-Sync SOP)
+用户核心诉求：“不要全线路构建哈，我这个是单纯的音乐驱动画面，对口型的。就算要给画面写提示词，也是很简单的。只是简单你要说谁是谁在唱歌，跟着音乐歌曲。对口型。画面精彩演绎。”
+
+### 1. 极简原则：坚决摒弃重度全流程大论文
+当用户明确要求“纯粹音乐驱动画面对口型”时：
+- **严禁**调用重度 12 步全链、严禁输出 6 大块长篇段落大论文；
+- **只保留核心三要素**：谁在唱 + 跟着歌曲对口型 + 画面精彩演绎！
+
+### 2. 极简黄金三句式提示词结构：
+\`\`\`text
+<Subject 1> is {角色名字} in <Picture 1>. (S1) is singing along to the song in <Audio 1>, naturally and accurately lip-syncing to the vocal melody. The performance is captivating and expressive, with stylish facial nuances and subtle rhythmic poise matching the musical flow. High-definition cinematic framing in {场景置景与灯光}, delivering a stunning and exciting visual performance.
+\`\`\`
+
+### 3. 极简负向提示词：
+\`\`\`text
+out-of-sync audio, mouth opening during silence, distorted jaw, unnatural teeth, screaming face, robotic lips, stickers, low quality
+\`\`\`
+
+### 4. 底层直驱节点：
+- **Node 174 (LoadAudio)**：传入用户上传的音频或歌曲；
+- **Node 137 (LoadImage)**：传入人物角色立绘；
+- **Node 136 (MiniMaxH3ReferenceToVideo)**：联合采样，一键出片！
+\`\`\``
   },
   {
     id: 'skill_md',

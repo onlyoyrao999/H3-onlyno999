@@ -642,7 +642,14 @@ export const FORBIDDEN_WORDS_LEXICON = {
     '贴纸', '涂鸦', '徽标', '印花', '挂件', '腰部Logo', '大腿挂饰', '乱码标贴', '车贴'
   ],
   characterPurityPositivePhrase:
-    'The character chassis, body armor, and clothing surfaces remain 100% pristine, solid finish identical to reference: strictly zero extra stickers, zero decals, zero waist emblems, zero painted graffiti, zero dangling trinkets on thighs or belt, unadorned and solid texture.'
+    'The character chassis, body armor, and clothing surfaces remain 100% pristine, solid finish identical to reference: strictly zero extra stickers, zero decals, zero waist emblems, zero painted graffiti, zero dangling trinkets on thighs or belt, unadorned and solid texture.',
+  // 5. 夸张演唱/大喊大叫/大张嘴失真抑制 (用于“画面随音乐律动·克制对口型，非大声演唱”)
+  exaggeratedSingingSuppression: [
+    'screaming', 'shouting', 'exaggerated singing', 'wide open mouth screaming',
+    'theatrical operatic performance', 'karaoke singing', 'distorted jaw', 'strained neck',
+    'holding microphone', 'overacting singing', 'wild facial distortion while singing', 'screaming vocalist',
+    '夸张演唱', '大喊大叫', '大张嘴', '面部扭曲', '声嘶力竭', '手持麦克风', '卡拉OK式演唱', '舞台夸张嘶吼'
+  ]
 };
 
 /**
@@ -652,11 +659,13 @@ export function buildCompliantNegativePrompt(options?: {
   isLipSync?: boolean;
   suppressBgm?: boolean;
   suppressDecalsAndGraffiti?: boolean;
+  suppressExaggeratedSinging?: boolean;
   extraNegatives?: string;
 }): string {
   const isLip = options?.isLipSync ?? false;
   const suppressBgm = options?.suppressBgm ?? true;
   const suppressDecals = options?.suppressDecalsAndGraffiti ?? true; // 默认永久锁死角色防涂鸦锁
+  const suppressSinging = options?.suppressExaggeratedSinging ?? true; // 默认压制夸张唱歌/大张嘴，保证克制高级感
 
   const tags: string[] = [...FORBIDDEN_WORDS_LEXICON.screenTextAndSubtitles];
 
@@ -668,6 +677,9 @@ export function buildCompliantNegativePrompt(options?: {
   }
   if (suppressDecals) {
     tags.push(...FORBIDDEN_WORDS_LEXICON.characterSurfacePurityAndDecals);
+  }
+  if (suppressSinging) {
+    tags.push(...FORBIDDEN_WORDS_LEXICON.exaggeratedSingingSuppression);
   }
 
   tags.push('cartoon', '3d render', 'distorted anatomy', 'jitter', 'flicker', 'lowres');
@@ -727,47 +739,261 @@ export function applySuppressionToPrompt(
 }
 
 /**
+ * Music Genre & Acting Style Auto-Adaptation System
+ * Automatically switches acting mood, camera kinematics, lighting, and lip dynamics based on song style
+ */
+export type MusicGenreId =
+  | 'auto'
+  | 'melancholy_ballad'
+  | 'hiphop_rnb'
+  | 'cyberpunk_edm'
+  | 'rock_alternative'
+  | 'jazz_lounge'
+  | 'pop_upbeat'
+  | 'gufeng_ethereal'
+  | 'cinema_epic';
+
+export interface MusicGenreProfile {
+  id: MusicGenreId;
+  name: string;
+  nameEn: string;
+  bpmRange: string;
+  vibeTags: string[];
+  actingMood: string;
+  cameraMovement: string;
+  lightingAtmosphere: string;
+  lipSyncRule: string;
+  keywords: string[];
+}
+
+export const MUSIC_GENRE_PROFILES: Record<Exclude<MusicGenreId, 'auto'>, MusicGenreProfile> = {
+  melancholy_ballad: {
+    id: 'melancholy_ballad',
+    name: '深情慢歌 / 伤感民谣',
+    nameEn: 'Melancholy Ballad & Acoustic',
+    bpmRange: '60-80 BPM',
+    vibeTags: ['深情内敛', '微泛泪光', '低眉凝思', '柔和慢推'],
+    actingMood: 'contemplative, deeply emotional, tender, and vulnerable, with glistening attentive eyes, subtle downward glances, and gentle throat breaths',
+    cameraMovement: 'slow intimate dolly-in with soft shallow depth of field (f/1.4), drifting gently with the acoustic cadence and chord changes',
+    lightingAtmosphere: 'soft window rain light with warm hazy dust particles, low-saturation cinematic muted tones, and delicate ambient shadows',
+    lipSyncRule: 'Subtle and understated whisper-like lip matching; lips remain gently closed during acoustic guitar and piano interludes with a wistful gaze',
+    keywords: ['ballad', 'melancholy', 'sad', 'acoustic', 'piano', 'folk', 'guitar', '慢歌', '民谣', '深情', '伤感', '安静', '晴天', '抒情', '告白']
+  },
+  hiphop_rnb: {
+    id: 'hiphop_rnb',
+    name: '说唱律动 / 潮流R&B',
+    nameEn: 'Hip-Hop, Trap & Neo-Soul',
+    bpmRange: '85-125 BPM',
+    vibeTags: ['自信不羁', '808重音微晃', '低角度推拉', '霓虹暗调'],
+    actingMood: 'effortlessly confident, charismatic, magnetic, with subtle rhythmic head tilts, relaxed shoulder bounce, and cool self-assured eye contact',
+    cameraMovement: 'low-angle dynamic glide and subtle handheld float, catching rhythmic pulses with smooth cinematic precision',
+    lightingAtmosphere: 'high-contrast urban street lighting, neon reflections on wet asphalt, deep shadows, and subtle cyan-gold rim light',
+    lipSyncRule: 'Crisp rhythmic cadence synced to 808 beats without wide screaming mouth; body subtly grooves with shoulder sways and nods',
+    keywords: ['hiphop', 'rap', 'trap', 'rnb', 'r&b', 'beat', 'flow', 'freestyle', '说唱', '嘻哈', '律动', '潮流', '街头', '808', '押韵']
+  },
+  cyberpunk_edm: {
+    id: 'cyberpunk_edm',
+    name: '赛博电子 / 潮酷电音',
+    nameEn: 'Cyberpunk, Synthwave & EDM',
+    bpmRange: '120-135 BPM',
+    vibeTags: ['冷峻超然', '激光脉冲', '环绕滑轨', '蓝紫未来感'],
+    actingMood: 'calm, composed, futuristic, effortlessly cool, detached from chaos with a sharp hypnotic stare and sleek mechanical poise',
+    cameraMovement: 'smooth robotic orbital tracking and steady horizontal glides matching four-on-the-floor synth pulses and arpeggios',
+    lightingAtmosphere: 'volumetric neon haze in vivid cyan and ultraviolet, pulsing laser grids, and reflective metallic reflections',
+    lipSyncRule: 'Sleek, restrained phoneme articulation; remains statuesque and still during synth drops with cool poise',
+    keywords: ['cyberpunk', 'edm', 'synthwave', 'techno', 'electro', 'future', 'club', '赛博', '电音', '电子', '未来', '朋克', 'disco', 'dance']
+  },
+  rock_alternative: {
+    id: 'rock_alternative',
+    name: '热血摇滚 / 力量乐队',
+    nameEn: 'Rock & Indie Alternative',
+    bpmRange: '120-160 BPM',
+    vibeTags: ['桀骜张力', '电性压迫感', '硬光侧打', '下颌微收'],
+    actingMood: 'intense, raw, brooding with electric tension in jaw and brow, exuding resolute inner rock star power and rebellious charisma',
+    cameraMovement: 'snappy kinetic micro-movements on downbeats, dynamic chiaroscuro side-angles with energetic framing',
+    lightingAtmosphere: 'dramatic high-contrast stage spotlighting, stark tungsten rim glows, gritty textures, and moody silhouettes',
+    lipSyncRule: 'Crisp, resolute mouth articulations synced to guitar riffs without chaotic facial distortion; mouth firmly closes during solos',
+    keywords: ['rock', 'metal', 'band', 'punk', 'alternative', 'guitar_solo', '摇滚', '重金属', '乐队', '热血', '朋克', '怒放', '力量']
+  },
+  jazz_lounge: {
+    id: 'jazz_lounge',
+    name: '复古微醺 / 慵懒爵士',
+    nameEn: 'Lounge Jazz & Blues',
+    bpmRange: '70-110 BPM',
+    vibeTags: ['慵懒迷离', '摇摆微醺', '暖琥珀调', '复古柔焦'],
+    actingMood: 'effortlessly relaxed, sultry, velvety, with subtle knowing half-smiles and slow seductive blinks',
+    cameraMovement: 'slow circular velvet pan, gentle 35mm film halation, drifting smoothly like smoke in a dimly lit lounge',
+    lightingAtmosphere: 'warm amber tungsten glow, smoky club atmosphere, Venetian blind shadow patterns, and deep burgundy tones',
+    lipSyncRule: 'Smooth, relaxed lip-matching following the swing tempo; gentle head sway with lips delicately closed on trumpet fills',
+    keywords: ['jazz', 'blues', 'lounge', 'bossa', 'swing', 'saxophone', '爵士', '蓝调', '微醺', '慵懒', '复古', '咖啡', '夜曲']
+  },
+  pop_upbeat: {
+    id: 'pop_upbeat',
+    name: '灵动流行 / 阳光轻快',
+    nameEn: 'Upbeat Pop & City Pop',
+    bpmRange: '110-128 BPM',
+    vibeTags: ['阳光治愈', '元气清爽', '明亮自然光', '亲和微笑'],
+    actingMood: 'radiant, playful, magnetic, smiling warmly with upbeat charm and effortless youthful vitality',
+    cameraMovement: 'crisp smooth tracking with cheerful subtle zooms, maintaining clean, airy commercial symmetry',
+    lightingAtmosphere: 'bright high-key natural daylight, soft pastel fill light, clear crystalline reflections, and clean studio aesthetics',
+    lipSyncRule: 'Light, nimble speech-like articulation with cheerful expression transitions; natural closed-mouth smiles between phrases',
+    keywords: ['pop', 'upbeat', 'dance', 'happy', 'bright', 'summer', 'citypop', '流行', '欢快', '轻快', '阳光', '元气', '甜歌', '青春']
+  },
+  gufeng_ethereal: {
+    id: 'gufeng_ethereal',
+    name: '唯美古风 / 仙侠国潮',
+    nameEn: 'Ethereal Gufeng & Chinese Ancient',
+    bpmRange: '55-90 BPM',
+    vibeTags: ['仙气出尘', '水墨青黛', '顾盼含情', '烟雨慢移'],
+    actingMood: 'ethereal, poetic, dignified, serene with gentle gaze shifts, radiating timeless Eastern elegance and quiet melancholy',
+    cameraMovement: 'floating mist glide like an unfolding silk scroll, graceful crane tilt, breeze fluttering fabric gently',
+    lightingAtmosphere: 'diffused watercolor moonlight, morning mist, bamboo shadows, lantern warmth, and muted celadon tones',
+    lipSyncRule: 'Delicate and restrained articulation; lips part softly like morning dew, remaining gracefully closed on guzheng and flute melodies',
+    keywords: ['gufeng', 'chinese', 'ancient', 'flute', 'zither', 'oriental', 'wuxia', '古风', '国风', '国潮', '仙侠', '琵琶', '古筝', '笛', '江南', '红尘']
+  },
+  cinema_epic: {
+    id: 'cinema_epic',
+    name: '大气史诗 / 电影交响',
+    nameEn: 'Cinematic Epic & Orchestral',
+    bpmRange: '60-140 BPM',
+    vibeTags: ['恢弘浩瀚', '广阔地平线', '大景深航拍', '坚毅傲岸'],
+    actingMood: 'monumental, awe-inspiring, resolute, looking toward the distant horizon with solemn grandeur',
+    cameraMovement: 'grand sweeping crane pullback revealing cinematic scale, dramatic push-ins matching brass crescendos',
+    lightingAtmosphere: 'golden hour dramatic rim light, sweeping volumetric cloudscapes, cinematic anamorphic lens flares, and epic HDR contrast',
+    lipSyncRule: 'Solemn and dignified enunciation, aligned strictly with choral peaks; stoic closed lips during sweeping orchestral passages',
+    keywords: ['epic', 'cinematic', 'orchestra', 'symphonic', 'trailer', 'heroic', '史诗', '交响', '电影感', '宏大', '震撼', '磅礴', '原声', '序曲']
+  }
+};
+
+/**
+ * Automatically detects music genre profile from song filename or user description
+ */
+export function detectMusicGenreFromInput(input: string): MusicGenreProfile {
+  const normalized = (input || '').toLowerCase();
+  for (const profile of Object.values(MUSIC_GENRE_PROFILES)) {
+    if (profile.keywords.some(kw => normalized.includes(kw.toLowerCase()))) {
+      return profile;
+    }
+  }
+  // Default to melancholy_ballad if no direct keyword matches
+  return MUSIC_GENRE_PROFILES.melancholy_ballad;
+}
+
+/**
  * Compiles a strict H3 6-section prompt for Audio-Driven Character Acting
- * (When user uploads an audio track to drive character lip-sync and emotional storytelling)
+ * (When user uploads an audio track to drive character lip-sync and emotional storytelling,
+ * with automatic performance style adaptation based on song genre)
  */
 export function compileAudioDrivenH3Prompt(params: {
   characterName: string;
   characterVisualDescription: string;
   audioFilename: string;
   dialogueTranscript: string;
+  musicGenre?: MusicGenreId;
   actingMood?: string;
   sceneEnvironment?: string;
   shotScale?: string;
-}): string {
+  performanceType?: 'music_paced_visuals' | 'dialogue_speech' | 'theatrical_singing';
+}): { prompt: string; detectedProfile: MusicGenreProfile } {
   const {
     characterName,
     characterVisualDescription,
     audioFilename,
     dialogueTranscript,
-    actingMood = 'natural, expressive, and deeply authentic',
-    sceneEnvironment = 'a clean cinematic studio environment with soft natural lighting and atmospheric depth',
-    shotScale = 'medium close-up (chest-up, safe framing with full head visibility)'
+    musicGenre = 'auto',
+    shotScale = 'medium close-up (chest-up, safe framing with full head visibility)',
+    performanceType = 'music_paced_visuals'
   } = params;
 
-  return `[subject_definitions]
+  // Auto-detect or retrieve profile
+  const profile: MusicGenreProfile =
+    musicGenre && musicGenre !== 'auto'
+      ? MUSIC_GENRE_PROFILES[musicGenre] || MUSIC_GENRE_PROFILES.melancholy_ballad
+      : detectMusicGenreFromInput(audioFilename);
+
+  const actingMood = params.actingMood || profile.actingMood;
+  const sceneEnvironment = params.sceneEnvironment || `${profile.lightingAtmosphere} within a stylish cinematic environment`;
+  const isMusicPaced = performanceType === 'music_paced_visuals';
+
+  const summaryPacing = isMusicPaced
+    ? `Create a cinematic visual film paced to the rhythm, tempo, and acoustic soul of <Audio 1> (Genre: ${profile.nameEn}, ${profile.bpmRange}). Camera dynamics (${profile.cameraMovement}) and character motion flow seamlessly with the musical phrasing. This is NOT an exaggerated singing or stage karaoke performance; <Subject 1> maintains ${actingMood}, with restrained and natural lip-matching aligned with vocal phrasing.`
+    : `Create a high-fidelity character performance film entirely paced and driven by the spoken audio track <Audio 1>. <Subject 1> acts and delivers the monologue in <Audio 1> with ${actingMood}. Maintain stable cinematic focus on the character's facial acting and storytelling.`;
+
+  const lipSyncConstraint = isMusicPaced
+    ? `Style-Adaptive Lip-Sync: ${profile.lipSyncRule}. Strictly avoid wide-open singing mouth deformation, throat strain, or exaggerated screaming. The mouth naturally closes during instrumentals, solos, or rhythm breaks. Facial aesthetics remain composed and true to character.`
+    : `Audio-Visual Lip-Sync Lock: (S1)'s jaw, lips, and facial muscles articulate strictly synchronized to the phonemes, syllables, and acoustic volume envelope of <Audio 1>. During natural pauses, breathing intervals, or silence in <Audio 1>, (S1)'s mouth remains naturally and completely closed, maintaining attentive character micro-expressions without phantom speech movement.`;
+
+  const detailedAction = isMusicPaced
+    ? `[Shot 1] The camera performs ${profile.cameraMovement}, framing <Subject 1> in ${sceneEnvironment}, moving in harmony with the musical beat of <Audio 1>. <Subject 1> embodies ${actingMood}. When vocals occur in the track: <d>${dialogueTranscript}</d>, (S1) delivers restrained, stylish lip-matching with confident poise. Between vocal lines or during instrumental beats, (S1)'s lips remain naturally and gracefully closed with subtle rhythmic body posture (${profile.vibeTags.join(' · ')}), avoiding any theatrical shouting.`
+    : `[Shot 1] The camera opens in a ${shotScale} framing of <Subject 1> in ${sceneEnvironment}. (S1) delivers the spoken dialogue: <d>${dialogueTranscript}</d>. As the voice in <Audio 1> speaks, (S1)'s lips and jaw move in precise synchronization with every syllable and acoustic stress. Authentic subtle facial muscle nuances, natural blinks, and responsive head tilt reflect the emotional cadence of the speech (${actingMood}). When the monologue reaches natural pauses, (S1)'s lips gently close while breathing naturally, holding an engaging and expressive gaze toward camera.`;
+
+  const prompt = `[subject_definitions]
 <Subject 1> is ${characterName} in <Picture 1>. ${characterVisualDescription}. Preserve exact facial identity, styling, and uniform pristine solid finish without any stickers, decals, or body markings. (S1) speaks strictly using the exact voice, timbre, cadence, and delivery defined in <Audio 1> (${audioFilename}).
 
 [summary]
-Create a high-fidelity character performance film entirely paced and driven by the spoken audio track <Audio 1>. <Subject 1> acts and delivers the monologue in <Audio 1> with ${actingMood}. No complex camera spinning; maintain stable cinematic focus on the character's facial acting and storytelling. The performance is grounded in ${sceneEnvironment}. Sound design highlights the voice track with pristine clarity, free from synthetic background music or confusing audio noise.
+${summaryPacing} The performance is grounded in ${sceneEnvironment}. Sound design highlights the voice track with pristine clarity, free from synthetic background music or confusing audio noise.
 
 [retention_analysis]
 <Subject 1>: fully_preserved. Maintain the exact facial features, skin texture, outfit details, and clean surfaces from <Picture 1>.
-Audio-Visual Lip-Sync Lock: (S1)'s jaw, lips, and facial muscles articulate strictly synchronized to the phonemes, syllables, and acoustic volume envelope of <Audio 1>. During natural pauses, breathing intervals, or silence in <Audio 1>, (S1)'s mouth remains naturally and completely closed, maintaining attentive character micro-expressions without phantom speech movement.
+${lipSyncConstraint}
 Framing Safety: Keep ${shotScale} to prevent head clipping while speaking.
 
 [detailed_description]
-[Shot 1] The camera opens in a ${shotScale} framing of <Subject 1> in ${sceneEnvironment}. (S1) delivers the spoken dialogue: <d>${dialogueTranscript}</d>. As the voice in <Audio 1> speaks, (S1)'s lips and jaw move in precise synchronization with every syllable and acoustic stress. Authentic subtle facial muscle nuances, natural blinks, and responsive head tilt reflect the emotional cadence of the speech. When the monologue reaches natural pauses, (S1)'s lips gently close while breathing naturally, holding an engaging and expressive gaze toward camera.
+${detailedAction}
 
 [overall_soundscape]
-Use only clean, subtle diegetic room presence and delicate cloth movement. No disruptive ambient noise. The spoken voice from <Audio 1> remains the dominant, pristine acoustic element.
+Use only clean, subtle diegetic room presence and delicate cloth movement. No disruptive ambient noise. The audio track from <Audio 1> remains the dominant, pristine acoustic driver.
 
 [non_diegetic_music]
 None. There is no non-diegetic background music in this video track, keeping the vocal track absolutely pristine.`;
+
+  return { prompt, detectedProfile: profile };
 }
+
+/**
+ * 极简音乐驱动对口型提示词生成器 (Pure Simple Music Lip-Sync Prompt)
+ * 专为单纯音乐驱动、对口型、精彩画面演绎设计，避免复杂冗长的全流程冗余结构，只保留核心三要素：
+ * 1. 谁是谁（<Subject 1> is [name] in <Picture 1>）
+ * 2. 跟着音乐歌曲对口型唱歌（(S1) is singing along to the song in <Audio 1>, lip-syncing naturally to the vocals）
+ * 3. 画面精彩演绎（cinematic visual performance, stylish mood matching the music groove）
+ */
+export function compileSimpleMusicLipSyncPrompt(params: {
+  characterName?: string;
+  audioFilename?: string;
+  musicGenre?: MusicGenreId;
+  scenePrompt?: string;
+  songVibe?: string;
+}): {
+  prompt: string;
+  negativePrompt: string;
+  detectedProfile: MusicGenreProfile;
+  shortSummaryZh: string;
+} {
+  const {
+    characterName = 'Tiedan',
+    audioFilename = 'music_track.mp3',
+    musicGenre = 'auto',
+    scenePrompt,
+    songVibe
+  } = params;
+
+  const profile =
+    musicGenre && musicGenre !== 'auto'
+      ? MUSIC_GENRE_PROFILES[musicGenre] || MUSIC_GENRE_PROFILES.melancholy_ballad
+      : detectMusicGenreFromInput(audioFilename);
+
+  const scene = scenePrompt || profile.lightingAtmosphere;
+  const mood = songVibe || profile.actingMood;
+
+  // Ultra-concise, pure music-driven prompt tailored for H3 audio cross-attention
+  const prompt = `<Subject 1> is ${characterName} in <Picture 1>. (S1) is singing along to the song in <Audio 1>, naturally and accurately lip-syncing to the vocal melody. The performance is captivating and expressive, with stylish facial nuances (${mood}) and subtle rhythmic poise matching the musical flow. High-definition cinematic framing in ${scene}, delivering a stunning and exciting visual performance.`;
+
+  const negativePrompt = `out-of-sync audio, mouth opening during silence, distorted jaw, unnatural teeth, screaming face, robotic lips, stickers, low quality`;
+
+  const shortSummaryZh = `【极简对口型】<Subject 1> 是 <Picture 1> 中的 ${characterName}，跟着 <Audio 1> 的歌曲对口型演唱，神态 (${profile.name}) 精彩演绎，间奏自然闭口。`;
+
+  return { prompt, negativePrompt, detectedProfile: profile, shortSummaryZh };
+}
+
 
 
