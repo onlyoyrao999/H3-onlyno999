@@ -8,6 +8,57 @@ interface SkillSpecModalProps {
 
 const SPEC_FILES = [
   {
+    id: 'three_skills_chain_md',
+    name: '三技能架构规范 (前两步焊死+云端接口可换)',
+    type: 'markdown',
+    path: '/skills/mv-auto-pipeline/references/three_skills_ironclad_chian.md',
+    content: `# 三技能链式系统规范：前两步焊死 + 第三步云端一键图片接口热插拔
+
+## 架构核心原则 (System Architecture Principle)
+在整套 AI 视频与短剧生成流水线中，核心划分为「两层焊死内核」与「一层插拔管道」：
+
+### 1. 【Skill 1 焊死】创意句子与分镜构思内核 (Creative Ideation Kernel)
+- **定位**：业务与叙事基石（不可跳过、严禁大模型直出闲聊文本）。
+- **职责**：将用户的粗糙想法（如“这个帽子的创意”）转化为结构化的剧情大纲、分镜节奏、人物角色小传与戏剧冲突。
+- **输出物**：结构化镜头清单、台词文本、动作拟音设定。
+
+### 2. 【Skill 2 焊死】MiniMax H3 官方规范编译器 (Official H3 Ref2VA Compiler)
+- **定位**：模型底层对齐编译器（官方语法糖与硬门禁拦截）。
+- **职责**：
+  * 将 Skill 1 的自然语言分镜逐一编译为 H3 官方认可的六段式架构：
+    [subject_definitions] ➔ [summary] ➔ [retention_analysis] ➔ [detailed_description] ➔ [overall_soundscape] ➔ [non_diegetic_music]
+  * 自动注入 (Sx) 角色音色绑定与 <d> 台词口型发声标签；
+  * 执行严格的【零字幕硬门禁】：坚决剔除 "no subtitles/no text" 反向敏感词，防止画面烧录乱码字；
+  * 执行【防裁头镜头控制】：将特写安全后退至胸口或中近景，确保发声时头部完整。
+- **输出物**：符合 H3 官方 Ref2VA 契约的标准 Payload。
+
+### 3. 【Skill 3 插拔】云端一键生图/生视频接口 (Cloud One-Click Image/Video Driver)
+- **定位**：可灵活更换的算力与执行管道（Pluggable Execution Provider）。
+- **特性**：**前两步焊死不变，第三步按需随时替换不同云端服务**。
+- **支持接入与替换的云端接口**：
+  * 接口 A：RunningHub 云端 ComfyUI 生图/生视频接口 (Workflow ID: 2104734128657756162，节点 Node 138/137/139/175)
+  * 接口 B：Qwen-Image / FLUX / SD 云端文生图与图像编辑接口 (生成 1:1 人物定妆卡与母本场景卡)
+  * 接口 C：平台内置 ImageGen 图生图与 15s 尾帧垫图接力接口
+  * 接口 D：第三方 Webhook / 自建 GPU ComfyUI 实例接口
+- **契约规则**：只要接收到 Skill 2 编译好的标准 Payload，任何云端接口均可无缝消费并返回图片/视频 URL。
+
+---
+
+## 焊死大模型的系统提示词模板 (System Prompt Enforcement)
+\`\`\`markdown
+# AGENT IRONCLAD ROUTING RULE
+
+你必须执行严格的三技能链式流水线，严禁在未调用工具的情况下自行瞎编故事：
+1. 收到任何故事/剧本/视频构思请求，必须且只能首先调用 [Skill 1: 创意分镜生成器]；
+2. 拿到 Skill 1 产物后，必须强制传入 [Skill 2: H3 官方六段式转译器] 进行标准编译与敏感词清洗；
+3. 将 Skill 2 编译好的标准六段式 Payload，递交给 [Skill 3: 云端一键图片/视频生成接口] 进行云端任务派发。
+
+严禁事项：
+- 严禁大模型以自然语言直接回复闲聊故事；
+- 严禁跳过 Skill 2 直接将非结构化文字发给云端生图接口！
+\`\`\``
+  },
+  {
     id: 'skill_md',
     name: 'SKILL.md (V2.0 整合版)',
     type: 'markdown',

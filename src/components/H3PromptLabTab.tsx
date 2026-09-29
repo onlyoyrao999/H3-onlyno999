@@ -164,9 +164,26 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
               <Sparkles className="w-6 h-6 text-cyan-400" />
               <span>H3 官方 Ref2VA 提示词工坊与故事架构中台</span>
             </h1>
+            {/* 3-Skill Ironclad Pipeline Visualizer */}
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Skill 1 (焊死) 创意句子/分镜</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                <span>Skill 2 (焊死) H3官方六段式转译</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                <span>Skill 3 (插拔可换) 云端一键图片/视频接口</span>
+              </div>
+            </div>
             <p className="text-xs text-slate-400 max-w-3xl leading-relaxed">
-              规划时，<strong>第一阶段调用 Awesome-Seedance 散文设计故事节拍与戏剧冲突</strong>，随后<strong>一键转译为 MiniMax H3 官方能听懂的 Ref2VA 六段式架构</strong>，
-              并带上指定<strong>画幅比例 (9:16 / 16:9 / 21:9 / 1:1)</strong>，注入<strong>静止出现、背景音乐剥离与字幕严禁</strong>三大 MV 铁律，直通 RunningHub 出片。
+              <strong>前两步绝对焊死</strong>：创意句子必须经由 Skill 1 输出结构，严禁跳步；Skill 2 强制转译为 H3 官方认的六段式并锁死零字幕；
+              <strong>第三步为通用插拔管道</strong>：可根据需要随时更换 RunningHub、Qwen-Image 或自建 ComfyUI 云端一键生图接口。
             </p>
           </div>
 
