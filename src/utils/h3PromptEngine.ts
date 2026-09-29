@@ -951,11 +951,186 @@ None. There is no non-diegetic background music in this video track, keeping the
 }
 
 /**
+ * 自动识别音频歌曲的预置歌词片段库 (Auto-Recognize Lyrics Helper)
+ * 根据音频文件名自动嗅探提取歌词行与人声段落 (唱歌段 vs 纯器乐间奏)
+ */
+export interface RecognizedLyricSegment {
+  id: string;
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  formattedStart: string;
+  formattedEnd: string;
+  timeRange: string;
+  text: string;
+  isSinging: boolean;
+  calculatedFrames: number;
+}
+
+export function formatSecondsToTimestamp(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  const ms = Math.floor((sec % 1) * 100);
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+}
+
+export function calculateH3FramesForDuration(durationSec: number): number {
+  const target = Math.max(24, Math.round(durationSec * 24));
+  const n = Math.max(1, Math.round((target - 5) / 17));
+  return 17 * n + 5;
+}
+
+export function generateLrcTimelineText(segments: RecognizedLyricSegment[]): string {
+  return segments
+    .map(seg => `[${seg.formattedStart}] ${seg.isSinging ? '🎤 ' : '🎸 '}${seg.text}`)
+    .join('\n');
+}
+
+export function getAutoRecognizedLyricsForAudio(audioFilename: string): {
+  songTitle: string;
+  totalDurationSec: number;
+  defaultLyric: string;
+  isInstrumental: boolean;
+  segments: RecognizedLyricSegment[];
+} {
+  const norm = (audioFilename || '').toLowerCase();
+
+  const createSegment = (id: string, startSec: number, endSec: number, text: string, isSinging: boolean): RecognizedLyricSegment => {
+    const durationSec = Math.max(0.1, Number((endSec - startSec).toFixed(2)));
+    const formattedStart = formatSecondsToTimestamp(startSec);
+    const formattedEnd = formatSecondsToTimestamp(endSec);
+    return {
+      id,
+      startSec,
+      endSec,
+      durationSec,
+      formattedStart,
+      formattedEnd,
+      timeRange: `${formattedStart} - ${formattedEnd}`,
+      text,
+      isSinging,
+      calculatedFrames: calculateH3FramesForDuration(durationSec)
+    };
+  };
+
+  if (norm.includes('晴天') || norm.includes('acoustic') || norm.includes('ballad')) {
+    const segments = [
+      createSegment('seg_1', 0.0, 4.5, '[前奏木吉他分解和弦演奏 · 纯乐器]', false),
+      createSegment('seg_2', 4.5, 15.2, '故事的小黄花 从出生那年就飘着', true),
+      createSegment('seg_3', 15.2, 26.8, '童年的荡秋千 随记忆一直晃到现在', true),
+      createSegment('seg_4', 26.8, 32.4, '[间奏大提琴与木吉他过渡 · 纯乐器]', false),
+      createSegment('seg_5', 32.4, 45.0, '刮风这天 我试过握着你手', true)
+    ];
+    return {
+      songTitle: '晴天 (周杰伦 / 民谣版)',
+      totalDurationSec: 45.0,
+      defaultLyric: segments[1].text,
+      isInstrumental: false,
+      segments
+    };
+  }
+
+  if (norm.includes('trap') || norm.includes('808') || norm.includes('hiphop')) {
+    const segments = [
+      createSegment('seg_1', 0.0, 5.0, '[808 低音切分鼓点前奏 · 纯乐器]', false),
+      createSegment('seg_2', 5.0, 18.0, '节奏在跳动 穿透黑夜的迷宫', true),
+      createSegment('seg_3', 18.0, 30.0, '追逐着光影 永不停歇的步履', true),
+      createSegment('seg_4', 30.0, 38.0, '[副歌过渡合成器滑音 · 纯乐器]', false)
+    ];
+    return {
+      songTitle: 'Trap Flow (808 街头律动)',
+      totalDurationSec: 38.0,
+      defaultLyric: segments[1].text,
+      isInstrumental: false,
+      segments
+    };
+  }
+
+  if (norm.includes('cyberpunk') || norm.includes('neon') || norm.includes('edm')) {
+    const segments = [
+      createSegment('seg_1', 0.0, 6.0, '[四四拍脉冲琶音电子前奏 · 纯乐器]', false),
+      createSegment('seg_2', 6.0, 20.0, 'Neon lights in the rain, running through digital veins', true),
+      createSegment('seg_3', 20.0, 28.0, '[重音 Drop 激光律动 · 纯乐器]', false)
+    ];
+    return {
+      songTitle: 'Cyber Overdrive (未来赛博电音)',
+      totalDurationSec: 28.0,
+      defaultLyric: segments[1].text,
+      isInstrumental: false,
+      segments
+    };
+  }
+
+  if (norm.includes('rock') || norm.includes('anthem') || norm.includes('metal')) {
+    const segments = [
+      createSegment('seg_1', 0.0, 5.0, '[失真电吉他高能量扫弦 · 纯乐器]', false),
+      createSegment('seg_2', 5.0, 18.0, '炽热的呐喊 点燃无尽的苍穹', true),
+      createSegment('seg_3', 18.0, 28.0, '踏碎所有彷徨 奔向自由的光芒', true),
+      createSegment('seg_4', 28.0, 36.0, '[电吉他 Solo 重音过载 · 纯乐器]', false)
+    ];
+    return {
+      songTitle: 'Rock Anthem (热血电吉他力量)',
+      totalDurationSec: 36.0,
+      defaultLyric: segments[1].text,
+      isInstrumental: false,
+      segments
+    };
+  }
+
+  if (norm.includes('jazz') || norm.includes('midnight') || norm.includes('lounge')) {
+    const segments = [
+      createSegment('seg_1', 0.0, 6.0, '[柔和萨克斯风前奏 · 纯乐器]', false),
+      createSegment('seg_2', 6.0, 20.0, '咖啡的余温 融化在微醺的午夜', true),
+      createSegment('seg_3', 20.0, 28.0, '[低音提琴慢摇摆间奏 · 纯乐器]', false)
+    ];
+    return {
+      songTitle: 'Midnight Lounge (复古萨克斯风)',
+      totalDurationSec: 28.0,
+      defaultLyric: segments[1].text,
+      isInstrumental: false,
+      segments
+    };
+  }
+
+  if (norm.includes('青花瓷') || norm.includes('gufeng') || norm.includes('ancient')) {
+    const segments = [
+      createSegment('seg_1', 0.0, 5.0, '[古筝与竹笛空灵前奏 · 纯乐器]', false),
+      createSegment('seg_2', 5.0, 18.0, '天青色等烟雨 而我在等你', true),
+      createSegment('seg_3', 18.0, 28.0, '月色被打捞起 晕开了结局', true),
+      createSegment('seg_4', 28.0, 35.0, '[琵琶轻拢慢捻过渡 · 纯乐器]', false)
+    ];
+    return {
+      songTitle: '青花瓷 (国风雅韵 / 笛筝悠扬)',
+      totalDurationSec: 35.0,
+      defaultLyric: segments[1].text,
+      isInstrumental: false,
+      segments
+    };
+  }
+
+  // Generic track fallback
+  const segments = [
+    createSegment('seg_1', 0.0, 4.5, '[前奏器乐演奏 · 环境音]', false),
+    createSegment('seg_2', 4.5, 16.5, '旋律流淌在心间 歌声穿透夜的寂静', true),
+    createSegment('seg_3', 16.5, 28.5, '随风奔跑 追逐那未完的梦境', true),
+    createSegment('seg_4', 28.5, 35.0, '[间奏过渡旋律 · 纯乐器]', false)
+  ];
+  return {
+    songTitle: audioFilename.replace(/\.[^/.]+$/, ''),
+    totalDurationSec: 35.0,
+    defaultLyric: segments[1].text,
+    isInstrumental: false,
+    segments
+  };
+}
+
+/**
  * 极简音乐驱动对口型提示词生成器 (Pure Simple Music Lip-Sync Prompt)
- * 专为单纯音乐驱动、对口型、精彩画面演绎设计，避免复杂冗长的全流程冗余结构，只保留核心三要素：
+ * 专为单纯音乐驱动、对口型、精彩画面演绎设计，避免复杂冗长的全流程冗余结构：
  * 1. 谁是谁（<Subject 1> is [name] in <Picture 1>）
- * 2. 跟着音乐歌曲对口型唱歌（(S1) is singing along to the song in <Audio 1>, lip-syncing naturally to the vocals）
- * 3. 画面精彩演绎（cinematic visual performance, stylish mood matching the music groove）
+ * 2. 唱歌的地方跟着唱（As the vocals play in <Audio 1>, (S1) passionately sings along: <d>歌词</d>）
+ * 3. 纯器乐间奏地方自然闭嘴闭合不乱动（(S1) keeps mouth naturally closed with zero lip motion）
+ * 4. 画面精彩演绎（cinematic visual performance, stylish mood matching the music groove）
  */
 export function compileSimpleMusicLipSyncPrompt(params: {
   characterName?: string;
@@ -963,6 +1138,8 @@ export function compileSimpleMusicLipSyncPrompt(params: {
   musicGenre?: MusicGenreId;
   scenePrompt?: string;
   songVibe?: string;
+  lyrics?: string;
+  isInstrumental?: boolean;
 }): {
   prompt: string;
   negativePrompt: string;
@@ -974,7 +1151,9 @@ export function compileSimpleMusicLipSyncPrompt(params: {
     audioFilename = 'music_track.mp3',
     musicGenre = 'auto',
     scenePrompt,
-    songVibe
+    songVibe,
+    lyrics,
+    isInstrumental = false
   } = params;
 
   const profile =
@@ -985,12 +1164,24 @@ export function compileSimpleMusicLipSyncPrompt(params: {
   const scene = scenePrompt || profile.lightingAtmosphere;
   const mood = songVibe || profile.actingMood;
 
-  // Ultra-concise, pure music-driven prompt tailored for H3 audio cross-attention
-  const prompt = `<Subject 1> is ${characterName} in <Picture 1>. (S1) is singing along to the song in <Audio 1>, naturally and accurately lip-syncing to the vocal melody. The performance is captivating and expressive, with stylish facial nuances (${mood}) and subtle rhythmic poise matching the musical flow. High-definition cinematic framing in ${scene}, delivering a stunning and exciting visual performance.`;
+  let prompt = '';
+  let shortSummaryZh = '';
+
+  if (isInstrumental) {
+    // 纯乐器间奏段：人物闭嘴，享受律动，绝不乱动嘴
+    prompt = `<Subject 1> is ${characterName} in <Picture 1>. During this instrumental musical passage of <Audio 1>, (S1) listens and subtly sways to the rhythm (${mood}). (S1)'s mouth remains naturally and completely closed with zero lip motion, maintaining attentive poise. High-definition cinematic framing in ${scene}, delivering a captivating visual performance.`;
+    shortSummaryZh = `【纯器乐间奏】<Subject 1> 是 ${characterName}，当前为纯乐器演奏，人物嘴巴自然闭合静止，随节拍从容微晃。`;
+  } else if (lyrics && lyrics.trim().length > 0) {
+    // 唱歌的地方：自动识别出的歌词注入 <d>...</d>，人物跟着唱
+    prompt = `<Subject 1> is ${characterName} in <Picture 1>. As the singing vocal plays in <Audio 1>, (S1) passionately and naturally sings along to the lyrics: <d>${lyrics.trim()}</d>. (S1)'s lips, jaw, and facial expressions articulate accurately synchronized to each vocal syllable and melody (${mood}). Between vocal lines, lips close naturally. High-definition cinematic framing in ${scene}, delivering a stunning musical performance.`;
+    shortSummaryZh = `【人声演唱段】<Subject 1> 是 ${characterName}，跟着歌曲演唱歌词: <d>${lyrics.trim()}</d>，口型精准对位，间奏自然闭嘴。`;
+  } else {
+    // 默认通用对口型
+    prompt = `<Subject 1> is ${characterName} in <Picture 1>. (S1) is singing along to the song in <Audio 1>, naturally and accurately lip-syncing to the vocal melody. The performance is captivating and expressive, with stylish facial nuances (${mood}) and subtle rhythmic poise matching the musical flow. High-definition cinematic framing in ${scene}, delivering a stunning and exciting visual performance.`;
+    shortSummaryZh = `【极简对口型】<Subject 1> 是 ${characterName}，跟着 <Audio 1> 的歌曲对口型演唱，神态 (${profile.name}) 精彩演绎，间奏自然闭口。`;
+  }
 
   const negativePrompt = `out-of-sync audio, mouth opening during silence, distorted jaw, unnatural teeth, screaming face, robotic lips, stickers, low quality`;
-
-  const shortSummaryZh = `【极简对口型】<Subject 1> 是 <Picture 1> 中的 ${characterName}，跟着 <Audio 1> 的歌曲对口型演唱，神态 (${profile.name}) 精彩演绎，间奏自然闭口。`;
 
   return { prompt, negativePrompt, detectedProfile: profile, shortSummaryZh };
 }

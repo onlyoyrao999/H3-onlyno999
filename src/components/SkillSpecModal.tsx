@@ -243,16 +243,35 @@ out-of-sync audio, mouth opening during silence, unnatural jaw distortion, robot
 - **只保留核心三要素**：谁在唱 + 跟着歌曲对口型 + 画面精彩演绎！
 
 ### 2. 极简黄金三句式提示词结构：
-\`\`\`text
-<Subject 1> is {角色名字} in <Picture 1>. (S1) is singing along to the song in <Audio 1>, naturally and accurately lip-syncing to the vocal melody. The performance is captivating and expressive, with stylish facial nuances and subtle rhythmic poise matching the musical flow. High-definition cinematic framing in {场景置景与灯光}, delivering a stunning and exciting visual performance.
-\`\`\`
+- **唱歌段落（自动识别歌词注入，让人物跟着唱）**：
+  \`\`\`text
+  <Subject 1> is {角色名字} in <Picture 1>. As the singing vocal plays in <Audio 1>, (S1) passionately and naturally sings along to the lyrics: <d>{自动识别提取的歌词}</d>. (S1)'s lips, jaw, and facial expressions articulate accurately synchronized to each vocal syllable and melody. Between vocal lines, lips close naturally. High-definition cinematic framing in {场景置景与灯光}, delivering a stunning musical performance.
+  \`\`\`
+- **纯乐器间奏段落（人物自然闭口，绝不乱动嘴）**：
+  \`\`\`text
+  <Subject 1> is {角色名字} in <Picture 1>. During this instrumental musical passage of <Audio 1>, (S1) listens and subtly sways to the rhythm. (S1)'s mouth remains naturally and completely closed with zero lip motion, maintaining attentive poise. High-definition cinematic framing in {场景置景与灯光}, delivering a captivating visual performance.
+  \`\`\`
 
-### 3. 极简负向提示词：
+### 3. 时间轴自动识别与帧率对齐 (Timeline & Frame Calculation)：
+- **毫秒级时间戳**：精准标记每个段落的起止点（如 \`00:04.50 - 00:15.20\`，时长 10.7s）；
+- **H3 物理帧数对齐**：按 $17n+5$ 官方公式自动算出对应帧数（如 10.7s 对应 260 帧，15s 对应 362 帧）；
+- **标准 LRC/SRT 导出**：自动生成带 \`[00:04.50]\` 格式的时间轴歌词，方便后期剪辑与精确贴唱。
+
+### 4. 极简负向提示词：
 \`\`\`text
 out-of-sync audio, mouth opening during silence, distorted jaw, unnatural teeth, screaming face, robotic lips, stickers, low quality
 \`\`\`
 
-### 4. 底层直驱节点：
+### 5. 终剪母带替换（剥离 H3 电音杂音 · 重新合成参考音）：
+H3 扩散模型输出的原始视频音轨存在有损 AI 电音杂质。出片后执行单行 FFmpeg 指令：
+\`\`\`bash
+# 剥离 H3 生成杂音 (-map 0:v:0)，直贴用户原始参考音 (-map 1:a:0)
+ffmpeg -y -i h3_raw_video.mp4 -i user_reference_music.mp3 \
+  -map 0:v:0 -map 1:a:0 \
+  -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4
+\`\`\`
+
+### 6. 底层直驱节点：
 - **Node 174 (LoadAudio)**：传入用户上传的音频或歌曲；
 - **Node 137 (LoadImage)**：传入人物角色立绘；
 - **Node 136 (MiniMaxH3ReferenceToVideo)**：联合采样，一键出片！
