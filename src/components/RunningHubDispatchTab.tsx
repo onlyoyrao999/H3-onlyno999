@@ -40,7 +40,9 @@ import {
   Lock,
   Unlock,
   ShieldAlert,
-  Clock
+  Clock,
+  Mic,
+  Volume2
 } from 'lucide-react';
 
 interface RunningHubDispatchTabProps {
@@ -61,6 +63,10 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
 
   // Duration Preset: 10s (243 frames) vs 15s (362 frames)
   const [durationPreset, setDurationPreset] = useState<10 | 15>(15);
+
+  // Audio-Driven Acting State (Node 174 LoadAudio · Link 327 to Node 136)
+  const [isAudioDriven, setIsAudioDriven] = useState<boolean>(true);
+  const [customAudioFile, setCustomAudioFile] = useState<string>('123.flac');
 
   // Strict Segment-by-Segment Lip-Sync Gate Enforcement State
   const [strictSegmentGating, setStrictSegmentGating] = useState<boolean>(true);
@@ -113,7 +119,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         refImage1: effectiveImageUrl || 'tiedan_chest_detail_imagegen_fused.png',
         refImage2: 'tiedan_legs_detail.png',
         refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined,
-        refAudio: selectedShot.isLipSync ? 'tiedan_audio_voiceprint.wav' : undefined
+        refAudio: isAudioDriven ? customAudioFile : (selectedShot.isLipSync ? 'tiedan_audio_voiceprint.wav' : undefined)
       })
     : null;
 
@@ -160,7 +166,8 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         refImage0: 'tiedan_character_full.png',
         refImage1: effectiveImageUrl || 'tiedan_chest_detail_imagegen_fused.png',
         refImage2: 'tiedan_legs_detail.png',
-        refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined
+        refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined,
+        refAudio: isAudioDriven ? customAudioFile : undefined
       })
     : selectedWorkflowProfile === 'h3_director'
     ? buildCustomDirectorWorkflowJson({
@@ -591,6 +598,53 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
             </div>
           </div>
 
+          {/* Audio-Driven Performance (Node 174 LoadAudio · Link 327) */}
+          <div className="space-y-2 p-3.5 rounded-xl bg-slate-950 border border-indigo-500/40">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5 font-mono">
+                <Mic className="w-3.5 h-3.5 text-indigo-400" />
+                <span>外部音频驱动人物演绎 (Node 174 LoadAudio)</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsAudioDriven(!isAudioDriven)}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition ${
+                  isAudioDriven
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                    : 'bg-slate-800 text-slate-500 border border-slate-700'
+                }`}
+              >
+                {isAudioDriven ? '已激活 (Mode 0)' : '已旁路 (Mode 4)'}
+              </button>
+            </div>
+
+            {isAudioDriven ? (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={customAudioFile}
+                      onChange={(e) => setCustomAudioFile(e.target.value)}
+                      placeholder="如 123.flac, monologue_speech.wav, audio_01.mp3"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 shrink-0 bg-slate-900 px-2 py-1.5 rounded border border-slate-800">
+                    ref_audio_0 (Link 327)
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  🎙️ <strong>音频驱动口型机制：</strong>音频通过 Link 327 直连 Node 136，经由 Audio VAE 编码为潜在特征，DiT 联合采样严格根据音频波形与音素驱动人物嘴唇开合、发音微表情与身体节拍，停顿时自然闭口。
+                </p>
+              </div>
+            ) : (
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                当前为文本原生自生成模式（Node 174 处于 mode: 4 旁路状态），模型直接从提示词文本合成台词与声音。
+              </p>
+            )}
+          </div>
+
           {/* Mode Switcher */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-300">执行模式 (Execution Mode)</label>
@@ -979,6 +1033,14 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">17n+5 公式</span>
                     </div>
                     <p className="text-[11px] text-slate-300">精确换算：10 秒对齐 243 帧，15 秒对齐 362 帧，0 丢步</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-indigo-400">Node 174 & 120: LoadAudio + Audio VAE</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/40">音频驱动口型</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">Link 327 直连 Node 136 ref_audio_0，双模态 DiT 声画联合采样</p>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">

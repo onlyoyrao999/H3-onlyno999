@@ -726,3 +726,48 @@ export function applySuppressionToPrompt(
   return { modifiedPrompt: text, modifiedNegative: negative };
 }
 
+/**
+ * Compiles a strict H3 6-section prompt for Audio-Driven Character Acting
+ * (When user uploads an audio track to drive character lip-sync and emotional storytelling)
+ */
+export function compileAudioDrivenH3Prompt(params: {
+  characterName: string;
+  characterVisualDescription: string;
+  audioFilename: string;
+  dialogueTranscript: string;
+  actingMood?: string;
+  sceneEnvironment?: string;
+  shotScale?: string;
+}): string {
+  const {
+    characterName,
+    characterVisualDescription,
+    audioFilename,
+    dialogueTranscript,
+    actingMood = 'natural, expressive, and deeply authentic',
+    sceneEnvironment = 'a clean cinematic studio environment with soft natural lighting and atmospheric depth',
+    shotScale = 'medium close-up (chest-up, safe framing with full head visibility)'
+  } = params;
+
+  return `[subject_definitions]
+<Subject 1> is ${characterName} in <Picture 1>. ${characterVisualDescription}. Preserve exact facial identity, styling, and uniform pristine solid finish without any stickers, decals, or body markings. (S1) speaks strictly using the exact voice, timbre, cadence, and delivery defined in <Audio 1> (${audioFilename}).
+
+[summary]
+Create a high-fidelity character performance film entirely paced and driven by the spoken audio track <Audio 1>. <Subject 1> acts and delivers the monologue in <Audio 1> with ${actingMood}. No complex camera spinning; maintain stable cinematic focus on the character's facial acting and storytelling. The performance is grounded in ${sceneEnvironment}. Sound design highlights the voice track with pristine clarity, free from synthetic background music or confusing audio noise.
+
+[retention_analysis]
+<Subject 1>: fully_preserved. Maintain the exact facial features, skin texture, outfit details, and clean surfaces from <Picture 1>.
+Audio-Visual Lip-Sync Lock: (S1)'s jaw, lips, and facial muscles articulate strictly synchronized to the phonemes, syllables, and acoustic volume envelope of <Audio 1>. During natural pauses, breathing intervals, or silence in <Audio 1>, (S1)'s mouth remains naturally and completely closed, maintaining attentive character micro-expressions without phantom speech movement.
+Framing Safety: Keep ${shotScale} to prevent head clipping while speaking.
+
+[detailed_description]
+[Shot 1] The camera opens in a ${shotScale} framing of <Subject 1> in ${sceneEnvironment}. (S1) delivers the spoken dialogue: <d>${dialogueTranscript}</d>. As the voice in <Audio 1> speaks, (S1)'s lips and jaw move in precise synchronization with every syllable and acoustic stress. Authentic subtle facial muscle nuances, natural blinks, and responsive head tilt reflect the emotional cadence of the speech. When the monologue reaches natural pauses, (S1)'s lips gently close while breathing naturally, holding an engaging and expressive gaze toward camera.
+
+[overall_soundscape]
+Use only clean, subtle diegetic room presence and delicate cloth movement. No disruptive ambient noise. The spoken voice from <Audio 1> remains the dominant, pristine acoustic element.
+
+[non_diegetic_music]
+None. There is no non-diegetic background music in this video track, keeping the vocal track absolutely pristine.`;
+}
+
+

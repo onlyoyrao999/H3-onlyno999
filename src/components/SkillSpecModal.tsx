@@ -74,6 +74,93 @@ const SPEC_FILES = [
 \`\`\``
   },
   {
+    id: 'audio_driven_sop_md',
+    name: '音频驱动人物演绎专属 SOP (Audio-Driven Spec)',
+    type: 'markdown',
+    path: '/skills/mv-auto-pipeline/references/audio_driven_character_performance_sop.md',
+    content: `# 用户音频驱动人物演绎与画面推动专属 SOP (Audio-Driven Performance Spec)
+
+## 一、底层工作流硬件级走线与机制 (ComfyUI Workflow Architecture)
+在 MiniMax H3 官方终极版工作流中，音频驱动画面的数据流走线如下：
+1. **音频加载节点**：Node 174 (\`LoadAudio\`)
+   - 作用：载入用户上传的本地音频文件（支持 .wav, .flac, .mp3）。
+   - 状态切换：默认工作流在文本自生成模式下为 \`mode: 4\`（旁路/静音）；**当用户指定外部音频驱动时，必须由 Agent 自动切换为 \`mode: 0\`（激活）**！
+   - 走线：Node 174 输出槽 \`AUDIO\` (Link 327) 直连主算子 Node 136 的 \`ref_audios.ref_audio_0\`。
+2. **多模态声码器节点**：Node 120 (\`VAELoader\`: \`minimax_h3_audio_vae_fp32.safetensors\`)
+   - 走线：通过 Link 274 将声学 VAE 接入 Node 136 的 \`audio_vae\` 槽，将时域音频波形转换为声学潜在表征 (Audio Latents)。
+3. **主控算子多模态注意力**：Node 136 (\`MiniMaxH3ReferenceToVideo\`)
+   - 结合 \`<Picture 1>\` (Node 137 定妆卡) 与 \`<Audio 1>\` (Node 174 音频)。
+   - DiT 模型的 Cross-Attention 机制以音频潜空间为引导，严密约束下颌骨、嘴唇开合幅度、发音音素与面部肌肉运动。
+4. **严格时钟对齐计算器**：Node 131 (\`ComfyMathExpression\`)
+   - 运算公式：\`max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17\`
+   - 10.0 秒音频精准对应 243 帧；15.0 秒音频精准对应 362 帧。视频长度由音频物理时长数学级锁死，零音画漂移！
+5. **双路解码与封包**：
+   - Node 122 (\`VAEDecode\`) 解码图像帧 ➔ Link 295 ➔ Node 148 (\`VHS_VideoCombine\`)
+   - Node 121 (\`VAEDecodeAudio\`) 解码同步音频 ➔ Link 296 ➔ Node 148 (\`VHS_VideoCombine\`) 导出 24fps MP4 成片。
+
+---
+
+## 二、Agent 响应用户音频驱动指令的五步闭环 SOP
+
+### 第 1 步：音频分析与时长自适应路由 (Acoustic Ingestion & Slicing)
+- 提取用户音频时长 $T$ 与台词断句点：
+  * **$T \\le 10$s**：自动设定单段 Node 132 = 10.0s（生成 243 帧，广告/短视频节奏）；
+  * **$10\\text{s} < T \\le 15$s**：自动设定单段 Node 132 = 15.0s（生成 362 帧，短剧标准一镜）；
+  * **$T > 15$s（如 20s、30s、60s）**：Agent 自动在台词呼吸/停顿间隙进行物理音频切片，规划为 $N$ 个 10s 或 15s 段落。前段尾帧（第 242/362 帧）垫入下段 Node 137，并载入 Node 175 视频潜空间接力，杜绝超长音频单段硬跑导致的崩坏。
+
+### 第 2 步：角色与音频槽位绑定协议 (Audio-Character Binding Protocol)
+- 明确指定角色：
+  * \`<Subject 1>\` 绑定 \`<Picture 1>\`（Node 137 定妆照）；
+  * \`<Audio 1>\` 绑定 Node 174 上传的音频干声；
+  * 解除 Node 174 旁路（mode = 0），填入音频路径。
+
+### 第 3 步：H3 官方六段式【音频驱动专属编译契约】(Audio-Driven Six-Section Spec)
+编译提示词时，必须严格执行以下六段式语义结构：
+
+1. **[subject_definitions]**：
+   \`\`\`text
+   <Subject 1> is the character in <Picture 1>. Preserve facial features, hairstyle, attire, and pristine solid finish without any stickers or decals. (S1) speaks strictly using the voice, timbre, cadence, and delivery defined in <Audio 1>.
+   \`\`\`
+
+2. **[summary]**：
+   \`\`\`text
+   The scene is a high-fidelity cinematic performance driven entirely by the audio monologue <Audio 1>. <Subject 1> acts and speaks naturally to drive the narrative forward, with realistic facial emotions matching the vocal inflections.
+   \`\`\`
+
+3. **[retention_analysis]**：
+   \`\`\`text
+   <Subject 1>: fully_preserved.
+   Lip-sync continuity: Mouth movements are strictly locked to the acoustic energy, phonemes, and syllables of <Audio 1>. During natural pauses, breathing intervals, or silent gaps in <Audio 1>, the mouth remains naturally and completely closed without unnecessary fidgeting.
+   \`\`\`
+
+4. **[detailed_description]**：
+   \`\`\`text
+   [Shot 1] (S1) <d>台词内容</d>. The character faces camera in a comfortable medium close-up shot. As the dialogue in <Audio 1> begins, (S1)'s jaw and lips articulate precisely with the vocal track. Subtle head tilt and authentic eye micro-expressions accompany key vocal stresses. When the audio pauses, (S1) holds a natural attentive expression.
+   \`\`\`
+
+5. **[overall_soundscape]**：
+   \`\`\`text
+   Diegetic ambient room presence and subtle cloth rustle only. No loud conflicting sound effects. The spoken voice from <Audio 1> remains the primary acoustic focus.
+   \`\`\`
+
+6. **[non_diegetic_music]**：
+   \`\`\`text
+   None. Do not generate any synthetic background score or music track, keeping the vocal track pristine.
+   \`\`\`
+
+### 第 4 步：负向禁令强制注入
+负向提示词必须包含口型与音频防破音特征：
+\`\`\`text
+out-of-sync audio, mouth opening during silence, unnatural jaw distortion, robotic lip motion, speech latency, background music, noisy score, stickers, body graffiti, text, subtitles
+\`\`\`
+
+### 第 5 步：对齐质检三验 (Alignment Tri-Audit)
+出片后自动核查：
+1. 滞后量核验：$\\le 80$ms（口型与原声波形延迟严格在安全窗内）；
+2. 互相关系数：$\\ge 0.78$（元音音高与嘴巴开合包络拟合度）；
+3. 人声能量核验：动态范围保留良好，无爆音破音。`
+  },
+  {
     id: 'skill_md',
     name: 'SKILL.md (V2.0 整合版)',
     type: 'markdown',
@@ -196,15 +283,18 @@ import re, hashlib
 
 H3_SECTIONS = ["[subject_definitions]", "[summary]", "[retention_analysis]", "[detailed_description]", "[overall_soundscape]", "[non_diegetic_music]"]
 FORBIDDEN_ANTI_SUBTITLES = ["no subtitle", "no subtitles", "no text", "no words", "no caption"]
+SURFACE_INVARIANCE_KEYWORDS = ["pristine solid finish", "without stickers", "uniform original color", "纯净无贴纸", "表面一致"]
 
 def validate_h3_prompt(text: str) -> dict:
     lower = text.lower()
     missing = [s for s in H3_SECTIONS if s not in lower]
     has_trap = any(w in lower for w in FORBIDDEN_ANTI_SUBTITLES)
+    has_surface_shield = any(k in lower for k in SURFACE_INVARIANCE_KEYWORDS)
     return {
         "passed": len(missing) == 0 and not has_trap,
         "missing_sections": missing,
-        "subtitle_trap_detected": has_trap
+        "subtitle_trap_detected": has_trap,
+        "surface_invariance_shield_active": has_surface_shield
     }`
   },
   {
@@ -251,7 +341,13 @@ def validate_h3_prompt(text: str) -> dict:
 
 ## 3. 🤐 强制嘴唇静止 / 禁止开口
 - 正向：非发声镜注入 mouth naturally closed, lips completely still, not moving along with vocals。
-- 负向压制：singing, mouth open, lip-sync, talking, speaking, vocalizing, open lips, moving mouth。`
+- 负向压制：singing, mouth open, lip-sync, talking, speaking, vocalizing, open lips, moving mouth。
+
+## 4. 🛡️ 角色机体/服装防涂鸦贴纸锁 (Character Surface Invariance & Anti-Decal Shield)
+- 根因定位：H3 底模 Cross-Attention 特征外溢（背景霓虹夜市、招牌广告字被模型误当作机体涂鸦填补空白甲面）。
+- 正向防卫：正向人物定义必须加入绝对纯净声明：\`The character features a pristine solid finish without any stickers, logos, body graffiti, decorative decals, or hanging accessories. All body plates and fabrics maintain their uniform original color without any surface markings.\`
+- 负向硬压：强制注入 \`stickers, decals, body graffiti, painted emblems, waist logo, hanging charms, cartoon decals, body art, scratches, messy armor, decorated chassis, branded stickers, thigh patches, graffiti on suit\`。
+- 跨段接力净图：第 1 段尾帧若存在微瑕，需经清洗去除杂色后再行送入下段垫图，切断代际遗传！`
   },
   {
     id: 'aspect_ratio_md',
