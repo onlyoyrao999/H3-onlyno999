@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Sparkles, ShieldCheck, AlertCircle, CheckCircle2, Copy, Check, ArrowRight,
   RefreshCw, BookOpen, ExternalLink, HelpCircle, VolumeX, EyeOff, MicOff, Ban, Sliders,
-  Film, Smartphone, Monitor, Square, Tv, Compass, FileText, CheckCheck, Play
+  Film, Smartphone, Monitor, Square, Tv, Compass, FileText, CheckCheck, Play, Clock
 } from 'lucide-react';
 import {
   AspectRatioType,
@@ -21,6 +21,7 @@ import {
   StoryArchetype
 } from '../utils/h3PromptEngine';
 import { SPEAKER_AUDIO_PROFILES } from '../data/audioReferenceData';
+import { planDurationPartition, extractDurationFromPrompt } from '../utils/durationAutoPlanner';
 
 interface H3PromptLabTabProps {
   onJumpToDispatch?: () => void;
@@ -67,6 +68,12 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
 
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
   const [copiedNegative, setCopiedNegative] = useState<boolean>(false);
+
+  // User Natural Language Target Duration (e.g. 20s, 30s, 60s) & Auto-Partition Plan
+  const [targetDurationSeconds, setTargetDurationSeconds] = useState<number>(30);
+  const durationPartitionPlan = useMemo(() => {
+    return planDurationPartition(targetDurationSeconds);
+  }, [targetDurationSeconds]);
 
   const currentArConfig = ASPECT_RATIO_CONFIGS[aspectRatio] || ASPECT_RATIO_CONFIGS['9:16'];
   const currentSpeaker = SPEAKER_AUDIO_PROFILES.find(s => s.speakerId === selectedSpeakerId) || SPEAKER_AUDIO_PROFILES[0];
@@ -273,6 +280,96 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Natural Language Duration Auto-Partition Chaining Bar */}
+        <div className="p-4 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-3 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold text-white font-mono uppercase">
+                指令时长智能自适应解析与分段规划器 (Auto-Duration Partition Engine)
+              </span>
+              <span className="text-[10px] text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded border border-indigo-500/30">
+                零感知自适应 10s / 15s 官流规格
+              </span>
+            </div>
+            <div className="text-xs font-mono text-slate-400">
+              用户指令: <span className="text-cyan-300 font-bold">"{targetDurationSeconds} 秒短片"</span> ➔ 实际总长: <span className="text-purple-300 font-bold">{durationPartitionPlan.actualTotalSeconds} 秒</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-400">常见用户指令直选:</span>
+            {[
+              { label: '10秒广告 (1段)', sec: 10 },
+              { label: '15秒标准 (1段)', sec: 15 },
+              { label: '20秒短片 (2段×10s)', sec: 20 },
+              { label: '30秒高能 (2段×15s)', sec: 30 },
+              { label: '45秒叙事 (3段×15s)', sec: 45 },
+              { label: '60秒微短剧 (4段×15s)', sec: 60 }
+            ].map(pill => (
+              <button
+                key={pill.sec}
+                type="button"
+                onClick={() => setTargetDurationSeconds(pill.sec)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
+                  targetDurationSeconds === pill.sec
+                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-md ring-1 ring-indigo-400'
+                    : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-850 hover:text-white'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
+
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-[11px] text-slate-400 font-mono">自定义秒数:</span>
+              <input
+                type="number"
+                min="5"
+                max="300"
+                value={targetDurationSeconds}
+                onChange={(e) => setTargetDurationSeconds(Math.max(5, parseInt(e.target.value) || 15))}
+                className="w-16 bg-slate-900 border border-slate-700 rounded-md px-2 py-1 text-xs font-mono text-cyan-300 text-center focus:outline-none focus:border-cyan-500"
+              />
+              <span className="text-xs text-slate-400">秒</span>
+            </div>
+          </div>
+
+          {/* Detailed Chaining Visualization */}
+          <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 space-y-2">
+            <div className="text-xs text-slate-200 font-medium flex items-center justify-between">
+              <span>{durationPartitionPlan.summary}</span>
+              <span className="text-[11px] font-mono text-emerald-400">
+                ✅ 自动编排完成（{durationPartitionPlan.segmentCount} 个执行阶段）
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+              {durationPartitionPlan.segments.map((seg) => (
+                <div
+                  key={seg.segmentIndex}
+                  className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/90 space-y-1 relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between text-[11px] font-mono">
+                    <span className="font-bold text-cyan-300">分段 #{seg.segmentIndex}</span>
+                    <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
+                      {seg.duration}.0s ({seg.frames} 帧)
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-300 font-medium truncate">{seg.role}</div>
+                  <div className="text-[10px] text-slate-400 leading-tight">
+                    {seg.tailFramePadRequired ? (
+                      <span className="text-amber-400">📸 截取第 {seg.frames} 尾帧垫图 ➔ 传给下一段</span>
+                    ) : (
+                      <span className="text-emerald-400">🎬 终极成片收尾段</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

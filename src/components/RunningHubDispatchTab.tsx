@@ -39,7 +39,8 @@ import {
   CheckCheck,
   Lock,
   Unlock,
-  ShieldAlert
+  ShieldAlert,
+  Clock
 } from 'lucide-react';
 
 interface RunningHubDispatchTabProps {
@@ -57,6 +58,9 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
   const [isSandbox, setIsSandbox] = useState<boolean>(true);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [activeTask, setActiveTask] = useState<RunningHubTaskDispatchResult | null>(null);
+
+  // Duration Preset: 10s (243 frames) vs 15s (362 frames)
+  const [durationPreset, setDurationPreset] = useState<10 | 15>(15);
 
   // Strict Segment-by-Segment Lip-Sync Gate Enforcement State
   const [strictSegmentGating, setStrictSegmentGating] = useState<boolean>(true);
@@ -102,7 +106,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
     ? buildOfficialUltimatePayload({
         shotId: selectedShot.id,
         prompt: selectedShot.prompt,
-        durationSeconds: selectedShot.duration,
+        durationSeconds: durationPreset,
         aspectRatio: selectedShot.shotScale.includes('16:9') ? '16:9 (Landscape)' : '9:16 (Portrait Widescreen)',
         seed: selectedShot.seed || 666,
         refImage0: 'tiedan_character_full.png',
@@ -121,7 +125,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         globalPrompt: selectedShot.prompt,
         width: selectedShot.shotScale.includes('16:9') ? 864 : 480,
         height: selectedShot.shotScale.includes('16:9') ? 480 : 864,
-        totalFrames: Math.ceil(selectedShot.duration * 24),
+        totalFrames: durationPreset === 15 ? 362 : 243,
         fps: 24,
         seed: selectedShot.seed || 666,
         enableSelflift,
@@ -141,7 +145,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         audioUrl: '43dfda9eb46c40192b014d04105c760c86cb959780b7aa1126375cb0a942e4de.mp3',
         prompt: selectedShot.prompt,
         negativePrompt: selectedShot.negativePrompt,
-        durationSeconds: selectedShot.duration,
+        durationSeconds: durationPreset,
         startIndex: selectedShot.start,
         seed: selectedShot.seed || 999
       })
@@ -150,7 +154,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
   const customWorkflowJson = selectedWorkflowProfile === 'h3_official_ultimate'
     ? buildCustomOfficialUltimateWorkflowJson({
         prompt: selectedShot.prompt,
-        durationSeconds: selectedShot.duration,
+        durationSeconds: durationPreset,
         aspectRatio: selectedShot.shotScale.includes('16:9') ? '16:9 (Landscape)' : '9:16 (Portrait Widescreen)',
         seed: selectedShot.seed || 666,
         refImage0: 'tiedan_character_full.png',
@@ -533,6 +537,59 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
               </div>
             </div>
           )}
+
+          {/* Duration Selector: 10s vs 15s (Node 132 duration) */}
+          <div className="space-y-2 p-3.5 rounded-xl bg-slate-950 border border-slate-800">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 font-mono">
+                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                <span>分段时长规格 (Node 132 duration)</span>
+              </label>
+              <span className="text-[10px] text-cyan-400 font-mono bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+                {durationPreset === 15 ? '362 帧 (15.08s 竖屏短剧推荐)' : '243 帧 (10.00s 广告/MV推荐)'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDurationPreset(10)}
+                className={`p-2.5 rounded-lg border text-left transition ${
+                  durationPreset === 10
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm ring-1 ring-cyan-500/30'
+                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono">⚡ 10.0 秒</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-cyan-400">243 帧</span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1 leading-snug">
+                  短视频 · 音乐MV · 广告 · 高动态运镜 · 算力省
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDurationPreset(15)}
+                className={`p-2.5 rounded-lg border text-left transition ${
+                  durationPreset === 15
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-sm ring-1 ring-purple-500/30'
+                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono">🎬 15.0 秒</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-500/30">362 帧</span>
+                </div>
+                <div className="text-[10px] text-purple-300/80 mt-1 leading-snug">
+                  竖版微短剧标准 (4段=60秒) · 长对白情绪戏
+                </div>
+              </button>
+            </div>
+            <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-900">
+              <span>H3 官方底模原生帧率: 24fps</span>
+              <span className="font-mono text-slate-500">17n+5 数学对齐: {durationPreset === 15 ? '17×21+5=362' : '17×14+5=243'}</span>
+            </div>
+          </div>
 
           {/* Mode Switcher */}
           <div className="space-y-2">
