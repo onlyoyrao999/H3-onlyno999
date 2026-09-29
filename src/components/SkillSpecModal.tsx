@@ -158,7 +158,31 @@ out-of-sync audio, mouth opening during silence, unnatural jaw distortion, robot
 出片后自动核查：
 1. 滞后量核验：$\\le 80$ms（口型与原声波形延迟严格在安全窗内）；
 2. 互相关系数：$\\ge 0.78$（元音音高与嘴巴开合包络拟合度）；
-3. 人声能量核验：动态范围保留良好，无爆音破音。`
+3. 人声能量核验：动态范围保留良好，无爆音破音。
+
+---
+
+## 三、用户原声歌曲一键对口型与无损母带直合流水线 (Song Lip-Sync & Direct Master Muxing)
+如果用户的核心需求是：“我上传一首歌曲音频，让任意的人去演绎/对口型，最后把我上传的音频跟视频直接合成给我”：
+
+### 1. 为什么“直接合成原版音频”是商业级 MV 最佳工业解法？
+- **音质 100% 录音棚母带级保真**：AI 扩散模型的 Audio VAE 从潜空间解码的声音经神经网络有损重构，存在轻微电流声或低频削减。而直接将用户上传的原始歌曲（WAV/FLAC/320k MP3）与画面重新封包，成片拥有 100% 原始 CD 级母带质感！
+- **音画绝对同步的物理对齐**：视频帧率严格按 17n+5 公式向上贴合（24fps PTS 物理时间戳），视频总时长与原曲总毫秒完全相同，合并时零音画跑偏。
+
+### 2. Agent 必须自动把控的 3 个关键环节：
+- **前奏/间奏/尾奏防瞎张嘴 (Vocal Energy Gating)**：
+  歌曲中常有 10~30 秒纯吉他/钢琴 solo。Agent 必须做人声分轨或 VAD 检测：
+  * 有人声歌词片段：注入 \`mouth articulates strictly synced with singing vocals\`；
+  * 纯乐器间奏片段：注入 \`mouth firmly closed, listening to the melody, swaying gently, zero lip motion\`（绝不在吉他 solo 时乱动嘴！）。
+- **多段生成与长歌跨段接力**：
+  一首歌 3~4 分钟，底模单段跑 10s 或 15s。Agent 自动按歌词段落切分，前段尾帧垫入下段 Node 137，并载入 Node 175 视频潜空间，确保任意角色跨段整首歌不换脸。
+- **一键无损封包交付 (One-Step Lossless Muxing)**：
+  生成完毕后，调用 FFmpeg 将原版音频注入视频，直接替换模型生成的临时音轨，一秒导出交付成片：
+  \`\`\`bash
+  ffmpeg -y -i final_video_concat.mp4 -i user_original_song.mp3 \\
+    -map 0:v:0 -map 1:a:0 \\
+    -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4
+  \`\`\``
   },
   {
     id: 'skill_md',

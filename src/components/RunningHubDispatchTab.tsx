@@ -42,7 +42,8 @@ import {
   ShieldAlert,
   Clock,
   Mic,
-  Volume2
+  Volume2,
+  Music
 } from 'lucide-react';
 
 interface RunningHubDispatchTabProps {
@@ -1291,36 +1292,53 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
 
             {/* View Mode 7: FFmpeg Concat */}
             {viewMode === 'ffmpeg' && (
-              <div className="space-y-3 max-h-[380px] overflow-y-auto">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>多段 0.35s afade 平滑音频接缝与 AI 合规角标拼接脚本:</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`ffmpeg -y -v error -i S01.mp4 -i S02.mp4 -i S03.mp4 -i S04.mp4 -i master_bgm.wav -filter_complex "[0:v]setpts=PTS-STARTPTS[v0];[0:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a0];[1:v]setpts=PTS-STARTPTS[v1];[1:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a1];[2:v]setpts=PTS-STARTPTS[v2];[2:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a2];[3:v]setpts=PTS-STARTPTS[v3];[3:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[vconcat];[a0][a1][a2][a3]concat=n=4:v=0:a=1[adialogue];[4:a]volume=0.45[abgm];[adialogue][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]" -map "[vconcat]" -map "[aout]" -c:v libx264 -crf 19 -preset medium -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart 成片_完整母带.mp4`);
-                      setCopiedFfmpegCmd(true);
-                      setTimeout(() => setCopiedFfmpegCmd(false), 2000);
-                    }}
-                    className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-mono"
-                  >
-                    {copiedFfmpegCmd ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedFfmpegCmd ? '已复制命令' : '复制 FFmpeg 命令'}</span>
-                  </button>
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                {/* Scheme A: User Original Song Direct Muxing (Music Video Lip-Sync) */}
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/50 space-y-2.5 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-300 font-mono flex items-center gap-1.5">
+                      <Music className="w-4 h-4 text-emerald-400" />
+                      <span>方案 A：【用户原曲歌曲直合模式】(Direct Song Audio-Muxing)</span>
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`ffmpeg -y -v error -i final_video_concat.mp4 -i user_original_song.mp3 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4`);
+                        setCopiedFfmpegCmd(true);
+                        setTimeout(() => setCopiedFfmpegCmd(false), 2000);
+                      }}
+                      className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-mono px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40"
+                    >
+                      {copiedFfmpegCmd ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedFfmpegCmd ? '已复制' : '复制原曲直合命令'}</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    🎵 <strong>歌曲对口型终剪标配：</strong>彻底丢弃模型生成的中转音频，直接将您上传的原版母带歌曲（320k MP3 / WAV）与对口型视频流无损封包。画面零转码（<code>-c:v copy</code>），保留 100% 录音棚原声音质！
+                  </p>
+                  <pre className="text-emerald-300 text-xs font-mono p-2.5 bg-slate-900/90 rounded-lg border border-slate-800 whitespace-pre-wrap">{`ffmpeg -y -v error \\
+  -i final_video_concat.mp4 -i user_original_song.mp3 \\
+  -map 0:v:0 -map 1:a:0 \\
+  -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4`}</pre>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 space-y-2 leading-relaxed">
-                  <pre className="text-cyan-300 whitespace-pre-wrap">{`ffmpeg -y -v error \\
- -i S01.mp4 -i S02.mp4 -i S03.mp4 -i S04.mp4 -i master_bgm.wav \\
- -filter_complex "
-   [0:v]setpts=PTS-STARTPTS[v0];[0:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a0];
-   [1:v]setpts=PTS-STARTPTS[v1];[1:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a1];
-   [2:v]setpts=PTS-STARTPTS[v2];[2:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a2];
-   [3:v]setpts=PTS-STARTPTS[v3];[3:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a3];
-   [v0][v1][v2][v3]concat=n=4:v=1:a=0[vconcat];
-   [a0][a1][a2][a3]concat=n=4:v=0:a=1[adialogue];
-   [4:a]volume=0.45[abgm];
-   [adialogue][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]" \\
- -map "[vconcat]" -map "[aout]" -c:v libx264 -crf 19 -preset medium -pix_fmt yuv420p \\
- -c:a aac -b:a 192k -movflags +faststart 成片_完整母带.mp4`}</pre>
+                {/* Scheme B: Multi-Segment Short Drama Concat & BGM Mix */}
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-bold text-slate-300 font-mono">方案 B：【短剧对白多段 0.35s afade 平滑淡接 + Master BGM 铺底】</span>
+                  </div>
+                  <pre className="text-cyan-300 text-xs font-mono p-2.5 bg-slate-900/90 rounded-lg border border-slate-800 whitespace-pre-wrap">{`ffmpeg -y -v error \\
+  -i S01.mp4 -i S02.mp4 -i S03.mp4 -i S04.mp4 -i master_bgm.wav \\
+  -filter_complex "
+    [0:v]setpts=PTS-STARTPTS[v0];[0:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a0];
+    [1:v]setpts=PTS-STARTPTS[v1];[1:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a1];
+    [2:v]setpts=PTS-STARTPTS[v2];[2:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a2];
+    [3:v]setpts=PTS-STARTPTS[v3];[3:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a3];
+    [v0][v1][v2][v3]concat=n=4:v=1:a=0[vconcat];
+    [a0][a1][a2][a3]concat=n=4:v=0:a=1[adialogue];
+    [4:a]volume=0.45[abgm];
+    [adialogue][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]" \\
+  -map "[vconcat]" -map "[aout]" -c:v libx264 -crf 19 -preset medium -pix_fmt yuv420p \\
+  -c:a aac -b:a 192k -movflags +faststart 成片_完整母带.mp4`}</pre>
                 </div>
               </div>
             )}
