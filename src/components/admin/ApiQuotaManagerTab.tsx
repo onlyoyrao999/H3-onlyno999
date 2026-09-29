@@ -23,8 +23,8 @@ export const ApiQuotaManagerTab: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>('rh_live_key_999888777666');
   const [showKey, setShowKey] = useState<boolean>(false);
   const [baseUrl, setBaseUrl] = useState<string>('https://www.runninghub.cn');
-  const [workflowId, setWorkflowId] = useState<string>('2084788947984666625');
-  const [inviteCode, setInviteCode] = useState<string>('zedwxo2q');
+  const [workflowId, setWorkflowId] = useState<string>('2104734128657756162');
+  const [inviteCode, setInviteCode] = useState<string>('rh-v1221');
   const [webhookUrl, setWebhookUrl] = useState<string>('https://api.my-studio.run.app/v1/h3-webhook');
   const [maxConcurrency, setMaxConcurrency] = useState<number>(4);
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(600);
@@ -123,7 +123,7 @@ export const ApiQuotaManagerTab: React.FC = () => {
             <span className="text-xl font-black text-white font-mono">{inviteCode}</span>
           </div>
           <a
-            href="https://www.runninghub.cn/post/2084788947984666625/?inviteCode=zedwxo2q"
+            href="https://www.runninghub.cn/post/2104734128657756162/?inviteCode=rh-v1221"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
@@ -197,7 +197,7 @@ export const ApiQuotaManagerTab: React.FC = () => {
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-cyan-300 font-mono font-bold focus:outline-none focus:border-cyan-500"
             />
             <p className="text-[11px] text-slate-500">
-              官方权威工作流：<span className="text-slate-400 font-mono">2084788947984666625</span> (支持视频参考与多图矩阵)
+              官方权威工作流：<span className="text-slate-400 font-mono">2104734128657756162</span> (支持视频参考与多图矩阵)
             </p>
           </div>
 

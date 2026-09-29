@@ -4,9 +4,13 @@ import {
   RUNNINGHUB_CONFIG,
   RUNNINGHUB_WORKFLOW_TEMPLATE,
   H3_DIRECTOR_WORKFLOW_TEMPLATE,
+  H3_OFFICIAL_ULTIMATE_WORKFLOW_TEMPLATE,
+  OFFICIAL_ULTIMATE_WORKFLOW_ID,
   RunningHubTaskDispatchResult,
   executeRunningHubDispatch,
   buildRunningHubPayload,
+  buildOfficialUltimatePayload,
+  buildCustomOfficialUltimateWorkflowJson,
   buildDirectorOpenApiPayload,
   buildCustomDirectorWorkflowJson,
   buildCustomComfyWorkflowJson
@@ -48,7 +52,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
   onUpdateStoryboard
 }) => {
   const [selectedShotId, setSelectedShotId] = useState<string>(storyboard[0]?.id || 'shot_01');
-  const [selectedWorkflowProfile, setSelectedWorkflowProfile] = useState<'h3_director' | 'mv_selflift'>('h3_director');
+  const [selectedWorkflowProfile, setSelectedWorkflowProfile] = useState<'h3_official_ultimate' | 'h3_director' | 'mv_selflift'>('h3_official_ultimate');
   const [apiKey, setApiKey] = useState<string>('');
   const [isSandbox, setIsSandbox] = useState<boolean>(true);
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -75,7 +79,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
   const [copiedFfmpegCmd, setCopiedFfmpegCmd] = useState<boolean>(false);
 
   // View modes
-  const [viewMode, setViewMode] = useState<'director_modules' | 'timeline_data' | 'nodes' | 'fullJson' | 'payload' | 'director_report' | 'ffmpeg'>('director_modules');
+  const [viewMode, setViewMode] = useState<'official_nodes' | 'director_modules' | 'timeline_data' | 'nodes' | 'fullJson' | 'payload' | 'director_report' | 'ffmpeg'>('official_nodes');
 
   const selectedShot = storyboard.find(s => s.id === selectedShotId) || storyboard[0];
 
@@ -83,11 +87,31 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
     ? (selectedShot.generatedKeyframeUrl || selectedShot.backgroundImageUrl)
     : 'e642390157ec77fa5195a81d97c8147b4d62533425dff3e299f0391aeae11022.png';
 
+  const currentWorkflowId = selectedWorkflowProfile === 'mv_selflift'
+    ? RUNNINGHUB_CONFIG.legacyMvWorkflowId
+    : RUNNINGHUB_CONFIG.workflowId;
+
   const handleCopyWorkflowId = () => {
-    navigator.clipboard.writeText(RUNNINGHUB_CONFIG.workflowId);
+    navigator.clipboard.writeText(currentWorkflowId);
     setCopiedWfId(true);
     setTimeout(() => setCopiedWfId(false), 2000);
   };
+
+  // Official Ultimate Payload and JSON
+  const officialPayload = selectedShot
+    ? buildOfficialUltimatePayload({
+        shotId: selectedShot.id,
+        prompt: selectedShot.prompt,
+        durationSeconds: selectedShot.duration,
+        aspectRatio: selectedShot.shotScale.includes('16:9') ? '16:9 (Landscape)' : '9:16 (Portrait Widescreen)',
+        seed: selectedShot.seed || 666,
+        refImage0: 'tiedan_character_full.png',
+        refImage1: effectiveImageUrl || 'tiedan_chest_detail_imagegen_fused.png',
+        refImage2: 'tiedan_legs_detail.png',
+        refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined,
+        refAudio: selectedShot.isLipSync ? 'tiedan_audio_voiceprint.wav' : undefined
+      })
+    : null;
 
   // Director Payload and JSON
   const directorPayload = selectedShot
@@ -106,7 +130,9 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
       })
     : null;
 
-  const currentPayload = selectedWorkflowProfile === 'h3_director'
+  const currentPayload = selectedWorkflowProfile === 'h3_official_ultimate'
+    ? officialPayload
+    : selectedWorkflowProfile === 'h3_director'
     ? directorPayload
     : selectedShot
     ? buildRunningHubPayload({
@@ -121,7 +147,18 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
       })
     : null;
 
-  const customWorkflowJson = selectedWorkflowProfile === 'h3_director'
+  const customWorkflowJson = selectedWorkflowProfile === 'h3_official_ultimate'
+    ? buildCustomOfficialUltimateWorkflowJson({
+        prompt: selectedShot.prompt,
+        durationSeconds: selectedShot.duration,
+        aspectRatio: selectedShot.shotScale.includes('16:9') ? '16:9 (Landscape)' : '9:16 (Portrait Widescreen)',
+        seed: selectedShot.seed || 666,
+        refImage0: 'tiedan_character_full.png',
+        refImage1: effectiveImageUrl || 'tiedan_chest_detail_imagegen_fused.png',
+        refImage2: 'tiedan_legs_detail.png',
+        refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined
+      })
+    : selectedWorkflowProfile === 'h3_director'
     ? buildCustomDirectorWorkflowJson({
         globalPrompt: selectedShot.prompt,
         width: selectedShot.shotScale.includes('16:9') ? 864 : 480,
@@ -141,7 +178,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         startIndex: selectedShot.start,
         seed: selectedShot.seed || 999
       })
-    : H3_DIRECTOR_WORKFLOW_TEMPLATE;
+    : H3_OFFICIAL_ULTIMATE_WORKFLOW_TEMPLATE;
 
   const handleCopyPayload = () => {
     if (currentPayload) {
@@ -163,7 +200,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `minimax_h3_director_workflow_shot_${selectedShot.index}.json`;
+    a.download = `minimax_h3_workflow_${selectedWorkflowProfile}_shot_${selectedShot.index}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -176,7 +213,11 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
       const result = await executeRunningHubDispatch({
         apiKey,
         isSandbox,
-        workflowType: selectedWorkflowProfile === 'h3_director' ? 'director' : 'mv_digital_human',
+        workflowType: selectedWorkflowProfile === 'h3_official_ultimate'
+          ? 'official_ultimate'
+          : selectedWorkflowProfile === 'h3_director'
+          ? 'director'
+          : 'mv_digital_human',
         directorSettings: {
           enableSelflift,
           enableRefine,
@@ -321,41 +362,101 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
 
           {/* Workflow Profile Switcher */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300">云端工作流模板 (Workflow Profile)</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300">云端工作流模板 (Workflow Profile)</label>
+              <span className="text-[10px] font-mono text-cyan-400">当前ID: {currentWorkflowId}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedWorkflowProfile('h3_official_ultimate')}
+                className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition text-left relative ${
+                  selectedWorkflowProfile === 'h3_official_ultimate'
+                    ? 'bg-gradient-to-r from-emerald-950/80 to-cyan-950/60 text-emerald-200 border-emerald-500/60 shadow-md ring-1 ring-emerald-500/40'
+                    : 'bg-slate-800/40 text-slate-400 border-slate-700 hover:bg-slate-800'
+                }`}
+              >
+                <div className="font-bold flex items-center gap-1 text-[11px] text-emerald-300">
+                  <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                  <span>🌟 H3 官流终极版</span>
+                </div>
+                <div className="text-[9px] text-slate-400 mt-0.5 truncate">官方 136 节点 · 双接力</div>
+                <div className="text-[8px] font-mono text-emerald-400/80 mt-0.5">2104734128657756162</div>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setSelectedWorkflowProfile('h3_director')}
-                className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition text-left ${
+                className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition text-left ${
                   selectedWorkflowProfile === 'h3_director'
                     ? 'bg-gradient-to-r from-indigo-900/70 to-purple-900/50 text-purple-200 border-purple-500/50 shadow-md ring-1 ring-purple-500/30'
                     : 'bg-slate-800/40 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-bold flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-purple-400" />
-                  <span>MiniMax H3 导演台</span>
+                <div className="font-bold flex items-center gap-1 text-[11px] text-purple-300">
+                  <Sliders className="w-3 h-3 text-purple-400 shrink-0" />
+                  <span>🎬 H3 导演台</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">8模块 · 脸修+二采+SelfLift</div>
+                <div className="text-[9px] text-slate-400 mt-0.5 truncate">Node 12 时序中台</div>
+                <div className="text-[8px] font-mono text-purple-400/80 mt-0.5">2104734128657756162</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSelectedWorkflowProfile('mv_selflift')}
-                className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition text-left ${
+                className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition text-left ${
                   selectedWorkflowProfile === 'mv_selflift'
                     ? 'bg-gradient-to-r from-cyan-900/70 to-blue-900/50 text-cyan-200 border-cyan-500/50 shadow-md ring-1 ring-cyan-500/30'
                     : 'bg-slate-800/40 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                <div className="font-bold flex items-center gap-1.5">
-                  <Film className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>音乐 MV 数字人</span>
+                <div className="font-bold flex items-center gap-1 text-[11px] text-cyan-300">
+                  <Film className="w-3 h-3 text-cyan-400 shrink-0" />
+                  <span>🎵 音乐 MV 旧二采</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">26 Nodes · 口型对齐</div>
+                <div className="text-[9px] text-slate-400 mt-0.5 truncate">26 Nodes · 口型基线</div>
+                <div className="text-[8px] font-mono text-cyan-400/80 mt-0.5">2100506281638457345</div>
               </button>
             </div>
           </div>
+
+          {/* Official Ultimate Mode Feature Panel */}
+          {selectedWorkflowProfile === 'h3_official_ultimate' && (
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-300 font-mono flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>MiniMax H3 官流终极版拓扑核验 (Verified)</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                  Node 136 主算子
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                <div className="p-2 rounded bg-slate-900/90 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Node 136 视频核心</div>
+                  <div className="text-emerald-300 font-semibold truncate">MiniMaxH3ReferenceToVideo</div>
+                </div>
+                <div className="p-2 rounded bg-slate-900/90 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Node 175 视频接力</div>
+                  <div className="text-cyan-300 font-semibold truncate">VHS_LoadVideo (跨段防漂移)</div>
+                </div>
+                <div className="p-2 rounded bg-slate-900/90 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Node 137 & 139 多图矩阵</div>
+                  <div className="text-amber-300 font-semibold truncate">&lt;Picture 1&gt;全身 + &lt;Picture 2&gt;胸标</div>
+                </div>
+                <div className="p-2 rounded bg-slate-900/90 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Node 131 帧数校验</div>
+                  <div className="text-purple-300 font-semibold truncate">严格 17n+5 数学公式</div>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                ✅ 已确认彻底绑定 RunningHub 官流终极版 <code>{RUNNINGHUB_CONFIG.workflowId}</code>。采用 Node 175 跨段潜空间视频接力与 Node 139 1:1 ImageGen 场景融入卡，从底层消除第 2 段角色变脸与“铁蛋”胸前文字消失问题！
+              </p>
+            </div>
+          )}
 
           {/* Director Mode: Task Type Selection & Multi-module Toggles */}
           {selectedWorkflowProfile === 'h3_director' && (
@@ -462,8 +563,8 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
             </div>
             <p className="text-[11px] text-slate-400">
               {isSandbox
-                ? '💡 沙箱模式模拟 RunningHub OpenAPI v2 Minimax H3 导演台完整时序与 8 大模块调度，不扣真实算力点。'
-                : '⚡ 真实模式将通过 Vite 代理调用 POST /openapi/v2/run/workflow/2100506281638457345 (Bearer Token 认证)。'}
+                ? `💡 沙箱模式模拟 RunningHub OpenAPI v2 ${selectedWorkflowProfile === 'h3_official_ultimate' ? 'MiniMax H3 官流终极版 (ID: 2104734128657756162)' : selectedWorkflowProfile === 'h3_director' ? 'H3 导演台 (ID: 2104734128657756162)' : 'MV数字人工作流 (ID: 2100506281638457345)'} 完整时序与节点调度，不扣真实算力点。`
+                : `⚡ 真实模式将通过 OpenAPI 调用 POST /openapi/v2/run/workflow/${currentWorkflowId} (Bearer Token 认证)。`}
             </p>
           </div>
 
@@ -677,6 +778,18 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
             {/* View Mode Switcher */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none mb-3 text-xs">
               <button
+                onClick={() => setViewMode('official_nodes')}
+                className={`px-3 py-1.5 rounded-lg transition font-medium whitespace-nowrap flex items-center gap-1.5 ${
+                  viewMode === 'official_nodes'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                    : 'bg-slate-800/60 text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>官流 136 节点全貌</span>
+              </button>
+
+              <button
                 onClick={() => setViewMode('director_modules')}
                 className={`px-3 py-1.5 rounded-lg transition font-medium whitespace-nowrap ${
                   viewMode === 'director_modules'
@@ -753,6 +866,82 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
                 FFmpeg 淡接终剪
               </button>
             </div>
+
+            {/* View Mode 0: Official Ultimate Nodes Topology */}
+            {viewMode === 'official_nodes' && (
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold text-white flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span>MiniMax H3 官流终极版完整拓扑 · ID: 2104734128657756162</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      严格对齐 <code>rh_h3.py</code> 与 RunningHub 官方规范，包含多图参考矩阵与跨段潜空间视频接力。
+                    </div>
+                  </div>
+                  <a
+                    href="https://www.runninghub.cn/post/2104734128657756162/?inviteCode=rh-v1221"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono flex items-center gap-1 shrink-0 hover:bg-emerald-500/30"
+                  >
+                    <span>RunningHub 官帖</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-emerald-400">Node 136: MiniMaxH3ReferenceToVideo</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">核心出片</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">多模态视频生成总控枢纽，统筹提示词、多图矩阵、视频接力与音频</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-cyan-400">Node 175: VHS_LoadVideo</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">跨段潜空间接力</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">载入上一段成片视频，双通道特征传递，从根源杜绝变脸断层</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-amber-400">Node 137 & 139: LoadImage</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">多图定妆矩阵</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">&lt;Picture 1&gt; 全身定妆卡 + &lt;Picture 2&gt; 胸前字/第二主体特写卡</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-purple-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-purple-400">Node 131: ComfyMathExpression</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">17n+5 公式</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">精确换算：10 秒对齐 243 帧，15 秒对齐 362 帧，0 丢步</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-slate-300">Node 138: PrimitiveStringMultiline</span>
+                      <span className="text-[9px] text-slate-500">文本提示词</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">六段式标准提示词输入通道</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-bold text-slate-300">Node 148: VHS_VideoCombine</span>
+                      <span className="text-[9px] text-slate-500">音画封包</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">结合零重影切除首帧垫图 (select=gt(n\,0))，无缝拼接导出</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* View Mode 1: Director 8 Modules Dashboard */}
             {viewMode === 'director_modules' && (

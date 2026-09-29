@@ -170,7 +170,7 @@ export const ModelNodeConfigTab: React.FC = () => {
 
         <div className="flex items-center gap-2 text-xs text-slate-400 pr-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>官流终极版 ID: <code className="text-cyan-400 font-mono">2084788947984666625</code></span>
+          <span>官流终极版 ID: <code className="text-cyan-400 font-mono">2104734128657756162</code></span>
         </div>
       </div>
 

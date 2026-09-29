@@ -167,10 +167,10 @@ export const CostLedgerTab: React.FC<CostLedgerTabProps> = ({ storyboard, onRero
                   <td className="px-4 py-3">
                     {shot.pool === 'priority_paid' ? (
                       <div>
-                        <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
-                          RunningHub 优先池
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                          H3 官流终极版优先池
                         </span>
-                        <div className="text-[9px] text-slate-500 mt-0.5 font-mono">ID: 2100506281638457345</div>
+                        <div className="text-[9px] text-emerald-400/80 mt-0.5 font-mono">ID: 2104734128657756162 (Node 136)</div>
                       </div>
                     ) : (
                       <div>
