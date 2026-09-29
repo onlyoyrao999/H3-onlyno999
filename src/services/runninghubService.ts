@@ -318,14 +318,7 @@ export function buildCustomOfficialUltimateWorkflowJson(params: {
     // Node 175: Video continuity
     const node175 = workflow.nodes.find((n: any) => n.id === 175);
     if (node175 && node175.widgets_values && params.refVideoPrev) {
-      node175.mode = 0; // Unbypass Node 175
-      node175.widgets_values.video = params.refVideoPrev;
-    }
-    // Node 174: Audio Reference (Audio-Driven Lip-Sync & Acting)
-    const node174 = workflow.nodes.find((n: any) => n.id === 174);
-    if (node174 && node174.widgets_values && params.refAudio) {
-      node174.mode = 0; // Unbypass Node 174 from mode 4 (mute) to mode 0 (active)
-      node174.widgets_values[0] = params.refAudio;
+      node175.widgets_values[0] = params.refVideoPrev;
     }
   }
 

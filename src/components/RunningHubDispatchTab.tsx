@@ -40,26 +40,8 @@ import {
   Lock,
   Unlock,
   ShieldAlert,
-  Clock,
-  Mic,
-  Volume2,
-  Music,
-  Radio,
-  Wand2,
-  FileAudio
+  Clock
 } from 'lucide-react';
-import {
-  MusicGenreId,
-  MUSIC_GENRE_PROFILES,
-  detectMusicGenreFromInput,
-  compileAudioDrivenH3Prompt,
-  compileSimpleMusicLipSyncPrompt,
-  getAutoRecognizedLyricsForAudio,
-  RecognizedLyricSegment,
-  generateLrcTimelineText,
-  formatSecondsToTimestamp,
-  calculateH3FramesForDuration
-} from '../utils/h3PromptEngine';
 
 interface RunningHubDispatchTabProps {
   storyboard: StoryboardShot[];
@@ -79,26 +61,6 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
 
   // Duration Preset: 10s (243 frames) vs 15s (362 frames)
   const [durationPreset, setDurationPreset] = useState<10 | 15>(15);
-
-  // Audio-Driven Acting State (Node 174 LoadAudio · Link 327 to Node 136)
-  const [isAudioDriven, setIsAudioDriven] = useState<boolean>(true);
-  const [customAudioFile, setCustomAudioFile] = useState<string>('123.flac');
-  // Acting Style: 画面随音乐律动·克制对位 vs 舞台大声演唱
-  const [audioActingStyle, setAudioActingStyle] = useState<'music_paced_cinematic' | 'theatrical_singing'>('music_paced_cinematic');
-  // Music Genre Auto-Adaptation Style ('auto' or specific genre)
-  const [selectedGenreId, setSelectedGenreId] = useState<MusicGenreId>('auto');
-  // Prompt Composition Mode: 'simple_music_sync' (极简音乐对口型) vs 'full_structured' (全流程六段式)
-  const [promptMode, setPromptMode] = useState<'simple_music_sync' | 'full_structured'>('simple_music_sync');
-  const [customCharacterName, setCustomCharacterName] = useState<string>('Tiedan');
-  const [customScenePrompt, setCustomScenePrompt] = useState<string>('stylish cinematic studio with moody lighting and clean visual aesthetic');
-
-  // Recognized Lyrics & Singing vs Instrumental State
-  const initialLyricsData = getAutoRecognizedLyricsForAudio(customAudioFile);
-  const [currentLyrics, setCurrentLyrics] = useState<string>(initialLyricsData.defaultLyric);
-  const [isInstrumentalSection, setIsInstrumentalSection] = useState<boolean>(initialLyricsData.isInstrumental);
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string>(initialLyricsData.segments[1]?.id || initialLyricsData.segments[0].id);
-  const [copiedMuxCmd, setCopiedMuxCmd] = useState<boolean>(false);
-  const [copiedLrcTimeline, setCopiedLrcTimeline] = useState<boolean>(false);
 
   // Strict Segment-by-Segment Lip-Sync Gate Enforcement State
   const [strictSegmentGating, setStrictSegmentGating] = useState<boolean>(true);
@@ -139,39 +101,11 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
     setTimeout(() => setCopiedWfId(false), 2000);
   };
 
-  // Music Genre Active Profile & Audio-Driven Prompt
-  const activeGenreProfile = selectedGenreId === 'auto'
-    ? detectMusicGenreFromInput(customAudioFile)
-    : MUSIC_GENRE_PROFILES[selectedGenreId];
-
-  const simpleMusicResult = compileSimpleMusicLipSyncPrompt({
-    characterName: customCharacterName,
-    audioFilename: customAudioFile,
-    musicGenre: selectedGenreId,
-    scenePrompt: customScenePrompt,
-    songVibe: activeGenreProfile.actingMood,
-    lyrics: currentLyrics,
-    isInstrumental: isInstrumentalSection
-  });
-
-  const audioDrivenPromptResult = compileAudioDrivenH3Prompt({
-    characterName: customCharacterName,
-    characterVisualDescription: 'uniform pristine solid finish, perfectly consistent facial identity and wardrobe',
-    audioFilename: customAudioFile,
-    dialogueTranscript: selectedShot?.lyricsSnippet || 'Hold the rhythm, feel the night.',
-    musicGenre: selectedGenreId,
-    performanceType: audioActingStyle === 'theatrical_singing' ? 'theatrical_singing' : 'music_paced_visuals'
-  });
-
-  const effectivePrompt = isAudioDriven
-    ? (promptMode === 'simple_music_sync' ? simpleMusicResult.prompt : audioDrivenPromptResult.prompt)
-    : selectedShot.prompt;
-
   // Official Ultimate Payload and JSON
   const officialPayload = selectedShot
     ? buildOfficialUltimatePayload({
         shotId: selectedShot.id,
-        prompt: effectivePrompt,
+        prompt: selectedShot.prompt,
         durationSeconds: durationPreset,
         aspectRatio: selectedShot.shotScale.includes('16:9') ? '16:9 (Landscape)' : '9:16 (Portrait Widescreen)',
         seed: selectedShot.seed || 666,
@@ -179,7 +113,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         refImage1: effectiveImageUrl || 'tiedan_chest_detail_imagegen_fused.png',
         refImage2: 'tiedan_legs_detail.png',
         refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined,
-        refAudio: isAudioDriven ? customAudioFile : (selectedShot.isLipSync ? 'tiedan_audio_voiceprint.wav' : undefined)
+        refAudio: selectedShot.isLipSync ? 'tiedan_audio_voiceprint.wav' : undefined
       })
     : null;
 
@@ -226,8 +160,7 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
         refImage0: 'tiedan_character_full.png',
         refImage1: effectiveImageUrl || 'tiedan_chest_detail_imagegen_fused.png',
         refImage2: 'tiedan_legs_detail.png',
-        refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined,
-        refAudio: isAudioDriven ? customAudioFile : undefined
+        refVideoPrev: selectedShot.index > 1 ? `output_shot_${(selectedShot.index - 1).toString().padStart(2, '0')}.mp4` : undefined
       })
     : selectedWorkflowProfile === 'h3_director'
     ? buildCustomDirectorWorkflowJson({
@@ -658,463 +591,6 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
             </div>
           </div>
 
-          {/* Audio-Driven Performance (Node 174 LoadAudio · Link 327) */}
-          <div className="space-y-2 p-3.5 rounded-xl bg-slate-950 border border-indigo-500/40">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5 font-mono">
-                <Mic className="w-3.5 h-3.5 text-indigo-400" />
-                <span>外部音频驱动人物演绎 (Node 174 LoadAudio)</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsAudioDriven(!isAudioDriven)}
-                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition ${
-                  isAudioDriven
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                    : 'bg-slate-800 text-slate-500 border border-slate-700'
-                }`}
-              >
-                {isAudioDriven ? '已激活 (Mode 0)' : '已旁路 (Mode 4)'}
-              </button>
-            </div>
-
-            {isAudioDriven ? (
-              <div className="space-y-3 pt-1">
-                {/* Audio File Input & ref_audio_0 badge */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={customAudioFile}
-                        onChange={(e) => setCustomAudioFile(e.target.value)}
-                        placeholder="如 晴天.mp3, trap_808.wav, cyberpunk.flac"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-                      />
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400 shrink-0 bg-slate-900 px-2 py-1.5 rounded border border-slate-800">
-                      ref_audio_0 (Link 327)
-                    </span>
-                  </div>
-
-                  {/* Quick Audio Sample Track Selectors */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-mono scrollbar-none">
-                    <span className="text-slate-500 shrink-0">快捷音轨:</span>
-                    {[
-                      { label: '🌧️ 晴天_acoustic.wav', file: '晴天_周杰伦_acoustic.wav', genre: 'melancholy_ballad' as const },
-                      { label: '🔥 trap_808_beat.mp3', file: 'trap_flow_808.mp3', genre: 'hiphop_rnb' as const },
-                      { label: '⚡ cyberpunk_neon.flac', file: 'cyberpunk_overdrive.flac', genre: 'cyberpunk_edm' as const },
-                      { label: '🎸 rock_anthem.wav', file: 'rock_power_anthem.wav', genre: 'rock_alternative' as const },
-                      { label: '🎷 midnight_jazz.wav', file: 'midnight_jazz_bar.wav', genre: 'jazz_lounge' as const },
-                      { label: '☀️ citypop_summer.mp3', file: 'citypop_summer_vibes.mp3', genre: 'pop_upbeat' as const },
-                      { label: '🎋 青花瓷_gufeng.wav', file: '青花瓷_oriental_gufeng.wav', genre: 'gufeng_ethereal' as const },
-                      { label: '🌌 epic_trailer.mp3', file: 'epic_destiny_orchestra.mp3', genre: 'cinema_epic' as const }
-                    ].map((item) => (
-                      <button
-                        key={item.file}
-                        type="button"
-                        onClick={() => {
-                          setCustomAudioFile(item.file);
-                          if (selectedGenreId !== 'auto') {
-                            setSelectedGenreId(item.genre);
-                          }
-                          const lyricsInfo = getAutoRecognizedLyricsForAudio(item.file);
-                          setCurrentLyrics(lyricsInfo.defaultLyric);
-                          setIsInstrumentalSection(lyricsInfo.isInstrumental);
-                        }}
-                        className={`px-2 py-0.5 rounded border shrink-0 transition ${
-                          customAudioFile === item.file
-                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 font-bold'
-                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-300'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Song Genre to Acting Style Auto-Adaptation Matrix */}
-                <div className="space-y-2 p-2.5 rounded-lg bg-slate-900/90 border border-indigo-500/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200">
-                      <Wand2 className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>演绎风格自适应 (根据歌曲风格自动切换)</span>
-                    </div>
-                    <div className="text-[10px] font-mono flex items-center gap-1">
-                      {selectedGenreId === 'auto' ? (
-                        <span className="text-emerald-400 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          已自动嗅探: {activeGenreProfile.name}
-                        </span>
-                      ) : (
-                        <span className="text-indigo-400 flex items-center gap-1">
-                          <Radio className="w-2.5 h-2.5" />
-                          手动锁定: {activeGenreProfile.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Genre Pills */}
-                  <div className="grid grid-cols-3 gap-1 text-[10px] font-mono">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGenreId('auto')}
-                      className={`px-2 py-1 rounded border transition text-center col-span-3 font-semibold ${
-                        selectedGenreId === 'auto'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-900'
-                      }`}
-                    >
-                      ✨ 智能自动识别 (Auto Detect by Song)
-                    </button>
-                    {(
-                      [
-                        { id: 'melancholy_ballad', label: '🌧️ 深情慢歌/民谣' },
-                        { id: 'hiphop_rnb', label: '🔥 说唱律动/R&B' },
-                        { id: 'cyberpunk_edm', label: '⚡ 赛博电子/EDM' },
-                        { id: 'rock_alternative', label: '🎸 热血摇滚/乐队' },
-                        { id: 'jazz_lounge', label: '🎷 复古微醺/爵士' },
-                        { id: 'pop_upbeat', label: '☀️ 灵动流行/清新' },
-                        { id: 'gufeng_ethereal', label: '🎋 唯美古风/国潮' },
-                        { id: 'cinema_epic', label: '🌌 大气史诗/交响' }
-                      ] as const
-                    ).map((g) => (
-                      <button
-                        key={g.id}
-                        type="button"
-                        onClick={() => setSelectedGenreId(g.id)}
-                        className={`px-1.5 py-1 rounded border transition text-left truncate ${
-                          (selectedGenreId === 'auto' && activeGenreProfile.id === g.id) || selectedGenreId === g.id
-                            ? 'bg-indigo-500/25 text-indigo-200 border-indigo-500/60 font-semibold'
-                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-900'
-                        }`}
-                      >
-                        {g.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Realtime 4-Axis Adaptation Card */}
-                  <div className="p-2 rounded bg-slate-950/80 border border-slate-800 space-y-1 text-[10px] text-slate-300 font-sans leading-relaxed">
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-indigo-400 shrink-0 font-bold font-mono">🎬 演绎神态:</span>
-                      <span className="text-slate-300">{activeGenreProfile.actingMood}</span>
-                    </div>
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-cyan-400 shrink-0 font-bold font-mono">📹 镜头运镜:</span>
-                      <span className="text-slate-300">{activeGenreProfile.cameraMovement}</span>
-                    </div>
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-amber-400 shrink-0 font-bold font-mono">💡 光影置景:</span>
-                      <span className="text-slate-300">{activeGenreProfile.lightingAtmosphere}</span>
-                    </div>
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-rose-400 shrink-0 font-bold font-mono">👄 口型节律:</span>
-                      <span className="text-slate-300">{activeGenreProfile.lipSyncRule}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lip-Sync Acting Style Switcher */}
-                <div className="space-y-1.5 pt-1 border-t border-slate-800">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-                    <span>口型幅度控制 (Lip Restraint):</span>
-                    <span className="text-[10px] text-indigo-400 font-mono">
-                      {audioActingStyle === 'music_paced_cinematic' ? '高级电影感 (克制自然)' : '舞台放声演唱'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setAudioActingStyle('music_paced_cinematic')}
-                      className={`p-2 rounded-lg border text-left transition ${
-                        audioActingStyle === 'music_paced_cinematic'
-                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 ring-1 ring-indigo-500/30 font-bold'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
-                      }`}
-                    >
-                      <div className="text-xs font-mono">🎬 随音乐律动·克制对位</div>
-                      <div className="text-[10px] text-slate-400 font-normal mt-0.5 leading-snug">
-                        画面运镜跟音乐节拍走，口型自然克制对位，绝不大张嘴嘶吼
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setAudioActingStyle('theatrical_singing')}
-                      className={`p-2 rounded-lg border text-left transition ${
-                        audioActingStyle === 'theatrical_singing'
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 ring-1 ring-purple-500/30 font-bold'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
-                      }`}
-                    >
-                      <div className="text-xs font-mono">🎤 舞台放声演唱</div>
-                      <div className="text-[10px] text-slate-400 font-normal mt-0.5 leading-snug">
-                        歌手开嗓演唱，口型开合幅度大，情绪动作饱满
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Prompt Composition Mode: 极简纯粹音乐对口型 vs 全流程复杂六段式 */}
-                <div className="space-y-2.5 p-3 rounded-xl bg-emerald-950/25 border border-emerald-500/40">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>提示词生成模式 (Prompt Composition Mode)</span>
-                    </div>
-                    <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                      {promptMode === 'simple_music_sync' ? '⚡ 极简音乐对口型 (用户专属)' : '📑 复杂全流程六段式'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setPromptMode('simple_music_sync')}
-                      className={`p-2 rounded-lg border text-left transition ${
-                        promptMode === 'simple_music_sync'
-                          ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/60 ring-1 ring-emerald-500/30 font-bold'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>⚡ 纯粹音乐驱动对口型 (轻量)</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-normal mt-0.5 leading-snug">
-                        极简三要素：谁是谁在唱歌 + 跟着歌曲对口型 + 画面精彩演绎（拒绝冗长繁复大段落）
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPromptMode('full_structured')}
-                      className={`p-2 rounded-lg border text-left transition ${
-                        promptMode === 'full_structured'
-                          ? 'bg-indigo-500/20 text-indigo-200 border-indigo-500/60 ring-1 ring-indigo-500/30 font-bold'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1">
-                        <span>📑 复杂全流程六段式</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-normal mt-0.5 leading-snug">
-                        包含 [subject_definitions]、[retention_analysis]、[soundscape] 等重度工程分段
-                      </div>
-                    </button>
-                  </div>
-
-                  {promptMode === 'simple_music_sync' && (
-                    <div className="space-y-2.5 pt-1 border-t border-emerald-500/20">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-slate-400 block mb-1">演绎角色 (谁在唱歌):</label>
-                          <input
-                            type="text"
-                            value={customCharacterName}
-                            onChange={(e) => setCustomCharacterName(e.target.value)}
-                            placeholder="如 Tiedan, Cyber Singer, 任意人名"
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-slate-400 block mb-1">画面置景与氛围 (精彩演绎):</label>
-                          <input
-                            type="text"
-                            value={customScenePrompt}
-                            onChange={(e) => setCustomScenePrompt(e.target.value)}
-                            placeholder="如 clean studio, neon stage, 电影感街头"
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-
-                      {/* 自动识别歌词与精准时间轴轨道 */}
-                      <div className="space-y-2 p-2.5 rounded-lg bg-slate-900/90 border border-emerald-500/30">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
-                            <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>音频精准时间轴识别 ({initialLyricsData.songTitle}):</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[10px] font-mono">
-                            <span className="text-slate-400">总长: {initialLyricsData.totalDurationSec}s</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(generateLrcTimelineText(initialLyricsData.segments));
-                                setCopiedLrcTimeline(true);
-                                setTimeout(() => setCopiedLrcTimeline(false), 2000);
-                              }}
-                              className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition flex items-center gap-1"
-                            >
-                              {copiedLrcTimeline ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
-                              <span>{copiedLrcTimeline ? '已复制 LRC' : '复制 LRC 时间轴'}</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Visual Multi-Segment Timeline Bar */}
-                        <div className="space-y-1 bg-slate-950 p-2 rounded border border-slate-800">
-                          <div className="flex items-center justify-between text-[9px] font-mono text-slate-500 px-0.5">
-                            <span>00:00</span>
-                            <span>00:{Math.round(initialLyricsData.totalDurationSec / 2).toString().padStart(2, '0')}</span>
-                            <span>00:{Math.round(initialLyricsData.totalDurationSec).toString().padStart(2, '0')}</span>
-                          </div>
-
-                          {/* Proportional Segment Track */}
-                          <div className="w-full h-8 bg-slate-900 rounded-md flex overflow-hidden border border-slate-800 gap-0.5 p-0.5">
-                            {initialLyricsData.segments.map((seg) => {
-                              const widthPct = Math.max(8, (seg.durationSec / initialLyricsData.totalDurationSec) * 100);
-                              const isSelected = selectedSegmentId === seg.id || currentLyrics === seg.text;
-                              return (
-                                <button
-                                  key={seg.id}
-                                  type="button"
-                                  style={{ width: `${widthPct}%` }}
-                                  onClick={() => {
-                                    setSelectedSegmentId(seg.id);
-                                    setCurrentLyrics(seg.text);
-                                    setIsInstrumentalSection(!seg.isSinging);
-                                  }}
-                                  className={`h-full rounded text-[10px] font-mono transition flex flex-col items-center justify-center relative overflow-hidden select-none group ${
-                                    seg.isSinging
-                                      ? isSelected
-                                        ? 'bg-emerald-500/35 text-emerald-200 border border-emerald-400 ring-1 ring-emerald-400/50 font-bold'
-                                        : 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
-                                      : isSelected
-                                        ? 'bg-purple-500/35 text-purple-200 border border-purple-400 ring-1 ring-purple-400/50 font-bold'
-                                        : 'bg-purple-950/60 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20'
-                                  }`}
-                                  title={`${seg.timeRange} · ${seg.isSinging ? '演唱段' : '间奏'} · ${seg.text}`}
-                                >
-                                  <div className="flex items-center gap-0.5 truncate px-1">
-                                    <span>{seg.isSinging ? '🎤' : '🎸'}</span>
-                                    <span className="truncate text-[9px]">{seg.formattedStart}</span>
-                                  </div>
-                                  <div className="text-[8px] opacity-75 font-sans leading-none">{seg.durationSec}s</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Active Selected Segment Details & Precision Settings */}
-                        <div className="p-2 rounded bg-slate-950/90 border border-slate-800 space-y-1.5">
-                          <div className="flex items-center justify-between text-[10px] font-mono">
-                            <div className="flex items-center gap-1.5 text-slate-300">
-                              <span className="text-emerald-400 font-bold">⏱️ 选中分段:</span>
-                              <span className="bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-cyan-300 font-semibold">
-                                {initialLyricsData.segments.find(s => s.id === selectedSegmentId)?.timeRange || '00:04.50 - 00:15.20'}
-                              </span>
-                              <span className="text-slate-500">
-                                ({initialLyricsData.segments.find(s => s.id === selectedSegmentId)?.durationSec || 10.7}s · H3 物理对齐: {initialLyricsData.segments.find(s => s.id === selectedSegmentId)?.calculatedFrames || 260} 帧)
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => setIsInstrumentalSection(false)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition ${
-                                  !isInstrumentalSection
-                                    ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-500/50 font-bold'
-                                    : 'bg-slate-900 text-slate-500 border border-slate-800'
-                                }`}
-                              >
-                                🎤 演唱跟唱
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setIsInstrumentalSection(true)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition ${
-                                  isInstrumentalSection
-                                    ? 'bg-purple-500/25 text-purple-200 border border-purple-500/50 font-bold'
-                                    : 'bg-slate-900 text-slate-500 border border-slate-800'
-                                }`}
-                              >
-                                🎸 间奏闭嘴
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Editable Lyrics Input */}
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-mono text-emerald-400 shrink-0">
-                              {!isInstrumentalSection ? '分段跟唱歌词 <d>:' : '纯器乐间奏标记:'}
-                            </span>
-                            <input
-                              type="text"
-                              value={currentLyrics}
-                              onChange={(e) => setCurrentLyrics(e.target.value)}
-                              disabled={isInstrumentalSection}
-                              placeholder="输入人物需要跟着唱的歌词，如：故事的小黄花..."
-                              className="flex-1 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 disabled:opacity-50"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 纯净提示词预览 */}
-                      <div className="p-2 rounded bg-slate-950 border border-slate-800 space-y-1">
-                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                          <span className="text-emerald-400 font-semibold">极简纯净提示词 (实际直接交付底模):</span>
-                          <span className="text-slate-500">{simpleMusicResult.prompt.length} 字符 · 无冗长废话</span>
-                        </div>
-                        <p className="text-xs font-mono text-slate-200 bg-slate-900/80 p-2 rounded border border-slate-800/80 leading-relaxed select-all">
-                          {simpleMusicResult.prompt}
-                        </p>
-                        <div className="text-[10px] text-emerald-400/90 flex items-center gap-1 font-mono pt-0.5">
-                          <span>✓</span>
-                          <span>{simpleMusicResult.shortSummaryZh}</span>
-                        </div>
-                      </div>
-
-                      {/* 终剪母带替换：剥离 H3 生成杂音 · 重新贴合参考原声 */}
-                      <div className="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/50 space-y-1.5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300">
-                            <Music className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>终剪母带合成 (剥离 H3 电音杂音 · 直贴参考音)</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `ffmpeg -y -v error -i h3_raw_video.mp4 -i ${customAudioFile} -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4`
-                              );
-                              setCopiedMuxCmd(true);
-                              setTimeout(() => setCopiedMuxCmd(false), 2000);
-                            }}
-                            className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-200 border border-emerald-500/40 hover:bg-emerald-500/30 transition flex items-center gap-1"
-                          >
-                            {copiedMuxCmd ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedMuxCmd ? '已复制合成指令' : '复制 FFmpeg 替换指令'}</span>
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed">
-                          💡 H3 扩散模型输出的音频存在有损 AI 电音杂质。最后一步通过 FFmpeg 将其音轨剥离 (<code className="text-emerald-300">-map 0:v:0</code>)，直接将您上传的参考原声母带无损封包入视频 (<code className="text-emerald-300">-map 1:a:0 -c:v copy -c:a aac -b:a 320k</code>)！
-                        </p>
-                        <div className="p-1.5 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-300 select-all overflow-x-auto whitespace-nowrap">
-                          ffmpeg -y -i h3_raw_video.mp4 -i {customAudioFile} -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-[10px] text-slate-400 leading-relaxed">
-                  🎙️ <strong>音频驱动口型机制：</strong>音频通过 Link 327 直连 Node 136，经由 Audio VAE 编码为潜在特征，DiT 联合采样严格根据音频波形与音素驱动人物嘴唇开合、发音微表情与身体节拍，停顿时自然闭口。
-                </p>
-              </div>
-            ) : (
-              <p className="text-[10px] text-slate-500 leading-relaxed">
-                当前为文本原生自生成模式（Node 174 处于 mode: 4 旁路状态），模型直接从提示词文本合成台词与声音。
-              </p>
-            )}
-          </div>
-
           {/* Mode Switcher */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-300">执行模式 (Execution Mode)</label>
@@ -1505,14 +981,6 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
                     <p className="text-[11px] text-slate-300">精确换算：10 秒对齐 243 帧，15 秒对齐 362 帧，0 丢步</p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950 border border-indigo-500/40 space-y-1">
-                    <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="font-bold text-indigo-400">Node 174 & 120: LoadAudio + Audio VAE</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/40">音频驱动口型</span>
-                    </div>
-                    <p className="text-[11px] text-slate-300">Link 327 直连 Node 136 ref_audio_0，双模态 DiT 声画联合采样</p>
-                  </div>
-
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <span className="font-bold text-slate-300">Node 138: PrimitiveStringMultiline</span>
@@ -1761,53 +1229,36 @@ export const RunningHubDispatchTab: React.FC<RunningHubDispatchTabProps> = ({
 
             {/* View Mode 7: FFmpeg Concat */}
             {viewMode === 'ffmpeg' && (
-              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
-                {/* Scheme A: User Original Song Direct Muxing (Music Video Lip-Sync) */}
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/50 space-y-2.5 shadow-md">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-300 font-mono flex items-center gap-1.5">
-                      <Music className="w-4 h-4 text-emerald-400" />
-                      <span>方案 A：【用户原曲歌曲直合模式】(Direct Song Audio-Muxing)</span>
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`ffmpeg -y -v error -i final_video_concat.mp4 -i user_original_song.mp3 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4`);
-                        setCopiedFfmpegCmd(true);
-                        setTimeout(() => setCopiedFfmpegCmd(false), 2000);
-                      }}
-                      className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-mono px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40"
-                    >
-                      {copiedFfmpegCmd ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedFfmpegCmd ? '已复制' : '复制原曲直合命令'}</span>
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    🎵 <strong>歌曲对口型终剪标配：</strong>彻底丢弃模型生成的中转音频，直接将您上传的原版母带歌曲（320k MP3 / WAV）与对口型视频流无损封包。画面零转码（<code>-c:v copy</code>），保留 100% 录音棚原声音质！
-                  </p>
-                  <pre className="text-emerald-300 text-xs font-mono p-2.5 bg-slate-900/90 rounded-lg border border-slate-800 whitespace-pre-wrap">{`ffmpeg -y -v error \\
-  -i final_video_concat.mp4 -i user_original_song.mp3 \\
-  -map 0:v:0 -map 1:a:0 \\
-  -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4`}</pre>
+              <div className="space-y-3 max-h-[380px] overflow-y-auto">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>多段 0.35s afade 平滑音频接缝与 AI 合规角标拼接脚本:</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`ffmpeg -y -v error -i S01.mp4 -i S02.mp4 -i S03.mp4 -i S04.mp4 -i master_bgm.wav -filter_complex "[0:v]setpts=PTS-STARTPTS[v0];[0:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a0];[1:v]setpts=PTS-STARTPTS[v1];[1:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a1];[2:v]setpts=PTS-STARTPTS[v2];[2:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a2];[3:v]setpts=PTS-STARTPTS[v3];[3:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[vconcat];[a0][a1][a2][a3]concat=n=4:v=0:a=1[adialogue];[4:a]volume=0.45[abgm];[adialogue][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]" -map "[vconcat]" -map "[aout]" -c:v libx264 -crf 19 -preset medium -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart 成片_完整母带.mp4`);
+                      setCopiedFfmpegCmd(true);
+                      setTimeout(() => setCopiedFfmpegCmd(false), 2000);
+                    }}
+                    className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-mono"
+                  >
+                    {copiedFfmpegCmd ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedFfmpegCmd ? '已复制命令' : '复制 FFmpeg 命令'}</span>
+                  </button>
                 </div>
 
-                {/* Scheme B: Multi-Segment Short Drama Concat & BGM Mix */}
-                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-bold text-slate-300 font-mono">方案 B：【短剧对白多段 0.35s afade 平滑淡接 + Master BGM 铺底】</span>
-                  </div>
-                  <pre className="text-cyan-300 text-xs font-mono p-2.5 bg-slate-900/90 rounded-lg border border-slate-800 whitespace-pre-wrap">{`ffmpeg -y -v error \\
-  -i S01.mp4 -i S02.mp4 -i S03.mp4 -i S04.mp4 -i master_bgm.wav \\
-  -filter_complex "
-    [0:v]setpts=PTS-STARTPTS[v0];[0:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a0];
-    [1:v]setpts=PTS-STARTPTS[v1];[1:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a1];
-    [2:v]setpts=PTS-STARTPTS[v2];[2:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a2];
-    [3:v]setpts=PTS-STARTPTS[v3];[3:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a3];
-    [v0][v1][v2][v3]concat=n=4:v=1:a=0[vconcat];
-    [a0][a1][a2][a3]concat=n=4:v=0:a=1[adialogue];
-    [4:a]volume=0.45[abgm];
-    [adialogue][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]" \\
-  -map "[vconcat]" -map "[aout]" -c:v libx264 -crf 19 -preset medium -pix_fmt yuv420p \\
-  -c:a aac -b:a 192k -movflags +faststart 成片_完整母带.mp4`}</pre>
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 space-y-2 leading-relaxed">
+                  <pre className="text-cyan-300 whitespace-pre-wrap">{`ffmpeg -y -v error \\
+ -i S01.mp4 -i S02.mp4 -i S03.mp4 -i S04.mp4 -i master_bgm.wav \\
+ -filter_complex "
+   [0:v]setpts=PTS-STARTPTS[v0];[0:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a0];
+   [1:v]setpts=PTS-STARTPTS[v1];[1:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a1];
+   [2:v]setpts=PTS-STARTPTS[v2];[2:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a2];
+   [3:v]setpts=PTS-STARTPTS[v3];[3:a]afade=t=in:st=0:d=0.35,afade=t=out:st=14.73:d=0.35,asetpts=PTS-STARTPTS[a3];
+   [v0][v1][v2][v3]concat=n=4:v=1:a=0[vconcat];
+   [a0][a1][a2][a3]concat=n=4:v=0:a=1[adialogue];
+   [4:a]volume=0.45[abgm];
+   [adialogue][abgm]amix=inputs=2:duration=first:dropout_transition=2[aout]" \\
+ -map "[vconcat]" -map "[aout]" -c:v libx264 -crf 19 -preset medium -pix_fmt yuv420p \\
+ -c:a aac -b:a 192k -movflags +faststart 成片_完整母带.mp4`}</pre>
                 </div>
               </div>
             )}

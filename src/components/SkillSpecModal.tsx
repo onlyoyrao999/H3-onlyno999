@@ -74,210 +74,6 @@ const SPEC_FILES = [
 \`\`\``
   },
   {
-    id: 'audio_driven_sop_md',
-    name: '音频驱动人物演绎专属 SOP (Audio-Driven Spec)',
-    type: 'markdown',
-    path: '/skills/mv-auto-pipeline/references/audio_driven_character_performance_sop.md',
-    content: `# 用户音频驱动人物演绎与画面推动专属 SOP (Audio-Driven Performance Spec)
-
-## 一、底层工作流硬件级走线与机制 (ComfyUI Workflow Architecture)
-在 MiniMax H3 官方终极版工作流中，音频驱动画面的数据流走线如下：
-1. **音频加载节点**：Node 174 (\`LoadAudio\`)
-   - 作用：载入用户上传的本地音频文件（支持 .wav, .flac, .mp3）。
-   - 状态切换：默认工作流在文本自生成模式下为 \`mode: 4\`（旁路/静音）；**当用户指定外部音频驱动时，必须由 Agent 自动切换为 \`mode: 0\`（激活）**！
-   - 走线：Node 174 输出槽 \`AUDIO\` (Link 327) 直连主算子 Node 136 的 \`ref_audios.ref_audio_0\`。
-2. **多模态声码器节点**：Node 120 (\`VAELoader\`: \`minimax_h3_audio_vae_fp32.safetensors\`)
-   - 走线：通过 Link 274 将声学 VAE 接入 Node 136 的 \`audio_vae\` 槽，将时域音频波形转换为声学潜在表征 (Audio Latents)。
-3. **主控算子多模态注意力**：Node 136 (\`MiniMaxH3ReferenceToVideo\`)
-   - 结合 \`<Picture 1>\` (Node 137 定妆卡) 与 \`<Audio 1>\` (Node 174 音频)。
-   - DiT 模型的 Cross-Attention 机制以音频潜空间为引导，严密约束下颌骨、嘴唇开合幅度、发音音素与面部肌肉运动。
-4. **严格时钟对齐计算器**：Node 131 (\`ComfyMathExpression\`)
-   - 运算公式：\`max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17\`
-   - 10.0 秒音频精准对应 243 帧；15.0 秒音频精准对应 362 帧。视频长度由音频物理时长数学级锁死，零音画漂移！
-5. **双路解码与封包**：
-   - Node 122 (\`VAEDecode\`) 解码图像帧 ➔ Link 295 ➔ Node 148 (\`VHS_VideoCombine\`)
-   - Node 121 (\`VAEDecodeAudio\`) 解码同步音频 ➔ Link 296 ➔ Node 148 (\`VHS_VideoCombine\`) 导出 24fps MP4 成片。
-
----
-
-## 二、Agent 响应用户音频驱动指令的五步闭环 SOP
-
-### 第 1 步：音频分析与时长自适应路由 (Acoustic Ingestion & Slicing)
-- 提取用户音频时长 $T$ 与台词断句点：
-  * **$T \\le 10$s**：自动设定单段 Node 132 = 10.0s（生成 243 帧，广告/短视频节奏）；
-  * **$10\\text{s} < T \\le 15$s**：自动设定单段 Node 132 = 15.0s（生成 362 帧，短剧标准一镜）；
-  * **$T > 15$s（如 20s、30s、60s）**：Agent 自动在台词呼吸/停顿间隙进行物理音频切片，规划为 $N$ 个 10s 或 15s 段落。前段尾帧（第 242/362 帧）垫入下段 Node 137，并载入 Node 175 视频潜空间接力，杜绝超长音频单段硬跑导致的崩坏。
-
-### 第 2 步：角色与音频槽位绑定协议 (Audio-Character Binding Protocol)
-- 明确指定角色：
-  * \`<Subject 1>\` 绑定 \`<Picture 1>\`（Node 137 定妆照）；
-  * \`<Audio 1>\` 绑定 Node 174 上传的音频干声；
-  * 解除 Node 174 旁路（mode = 0），填入音频路径。
-
-### 第 3 步：H3 官方六段式【音频驱动专属编译契约】(Audio-Driven Six-Section Spec)
-编译提示词时，必须严格执行以下六段式语义结构：
-
-1. **[subject_definitions]**：
-   \`\`\`text
-   <Subject 1> is the character in <Picture 1>. Preserve facial features, hairstyle, attire, and pristine solid finish without any stickers or decals. (S1) speaks strictly using the voice, timbre, cadence, and delivery defined in <Audio 1>.
-   \`\`\`
-
-2. **[summary]**：
-   \`\`\`text
-   The scene is a high-fidelity cinematic performance driven entirely by the audio monologue <Audio 1>. <Subject 1> acts and speaks naturally to drive the narrative forward, with realistic facial emotions matching the vocal inflections.
-   \`\`\`
-
-3. **[retention_analysis]**：
-   \`\`\`text
-   <Subject 1>: fully_preserved.
-   Lip-sync continuity: Mouth movements are strictly locked to the acoustic energy, phonemes, and syllables of <Audio 1>. During natural pauses, breathing intervals, or silent gaps in <Audio 1>, the mouth remains naturally and completely closed without unnecessary fidgeting.
-   \`\`\`
-
-4. **[detailed_description]**：
-   \`\`\`text
-   [Shot 1] (S1) <d>台词内容</d>. The character faces camera in a comfortable medium close-up shot. As the dialogue in <Audio 1> begins, (S1)'s jaw and lips articulate precisely with the vocal track. Subtle head tilt and authentic eye micro-expressions accompany key vocal stresses. When the audio pauses, (S1) holds a natural attentive expression.
-   \`\`\`
-
-5. **[overall_soundscape]**：
-   \`\`\`text
-   Diegetic ambient room presence and subtle cloth rustle only. No loud conflicting sound effects. The spoken voice from <Audio 1> remains the primary acoustic focus.
-   \`\`\`
-
-6. **[non_diegetic_music]**：
-   \`\`\`text
-   None. Do not generate any synthetic background score or music track, keeping the vocal track pristine.
-   \`\`\`
-
-### 第 4 步：负向禁令强制注入
-负向提示词必须包含口型与音频防破音特征：
-\`\`\`text
-out-of-sync audio, mouth opening during silence, unnatural jaw distortion, robotic lip motion, speech latency, background music, noisy score, stickers, body graffiti, text, subtitles
-\`\`\`
-
-### 第 5 步：对齐质检三验 (Alignment Tri-Audit)
-出片后自动核查：
-1. 滞后量核验：$\\le 80$ms（口型与原声波形延迟严格在安全窗内）；
-2. 互相关系数：$\\ge 0.78$（元音音高与嘴巴开合包络拟合度）；
-3. 人声能量核验：动态范围保留良好，无爆音破音。
-
----
-
-## 三、用户原声歌曲一键对口型与无损母带直合流水线 (Song Lip-Sync & Direct Master Muxing)
-如果用户的核心需求是：“我上传一首歌曲音频，让任意的人去演绎/对口型，最后把我上传的音频跟视频直接合成给我”：
-
-### 1. 为什么“直接合成原版音频”是商业级 MV 最佳工业解法？
-- **音质 100% 录音棚母带级保真**：AI 扩散模型的 Audio VAE 从潜空间解码的声音经神经网络有损重构，存在轻微电流声或低频削减。而直接将用户上传的原始歌曲（WAV/FLAC/320k MP3）与画面重新封包，成片拥有 100% 原始 CD 级母带质感！
-- **音画绝对同步的物理对齐**：视频帧率严格按 17n+5 公式向上贴合（24fps PTS 物理时间戳），视频总时长与原曲总毫秒完全相同，合并时零音画跑偏。
-
-### 2. Agent 必须自动把控的 3 个关键环节：
-- **前奏/间奏/尾奏防瞎张嘴 (Vocal Energy Gating)**：
-  歌曲中常有 10~30 秒纯吉他/钢琴 solo。Agent 必须做人声分轨或 VAD 检测：
-  * 有人声歌词片段：注入 \`mouth articulates strictly synced with singing vocals\`；
-  * 纯乐器间奏片段：注入 \`mouth firmly closed, listening to the melody, swaying gently, zero lip motion\`（绝不在吉他 solo 时乱动嘴！）。
-- **多段生成与长歌跨段接力**：
-  一首歌 3~4 分钟，底模单段跑 10s 或 15s。Agent 自动按歌词段落切分，前段尾帧垫入下段 Node 137，并载入 Node 175 视频潜空间，确保任意角色跨段整首歌不换脸。
-- **一键无损封包交付 (One-Step Lossless Muxing)**：
-  生成完毕后，调用 FFmpeg 将原版音频注入视频，直接替换模型生成的临时音轨，一秒导出交付成片：
-  \`\`\`bash
-  ffmpeg -y -i final_video_concat.mp4 -i user_original_song.mp3 \\
-    -map 0:v:0 -map 1:a:0 \\
-    -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4
-  \`\`\`
-
----
-
-## 四、核心审美界线：画面随音乐走 + 克制对口型 vs 夸张大唱 (Music-Paced Visuals vs. Theatrical Singing)
-用户核心诉求：“只是让画面跟着这个参考音乐走，口型对上，而不是说这种他唱一遍”。
-
-### 1. 为什么必须严格禁止“他唱一遍”？
-- **普通生视频误区**：如果提示词写成“singing vocals/pop singer”，AI 模型会把人物变成卡拉OK现场：大张嘴嘶吼、下巴拉长失真、脖子青筋暴起、甚至凭空长出手持麦克风，彻底破坏时尚感与电影感。
-- **商业广告/电影级真实做法**：
-  * **画面主体**：画面镜头（推拉摇移、景深虚化、角色走位）严格跟着**参考音乐的节奏鼓点与节拍（BPM/Rhythm）**律动；
-  * **口型对位**：口型仅作**克制、松弛、自然的同步对位（Subtle Speech-like Lip-Matching）**，角色神态从容自信、高级内敛，绝不大喊大叫；
-  * **非歌词时段**：人物闭嘴、微晃、眼神交流，让视觉与音乐旋律共振。
-
-### 2. Agent 焊死的正负向硬门禁规范：
-- **正向提示词锁定 (Positive Phrase)**：
-  \`\`\`text
-  The visual pacing, camera glides, and character motion flow seamlessly with the tempo and mood of <Audio 1>. Lip-sync is restrained, cinematic, and understated—natural speech-like articulation aligned with the phrasing, maintaining calm facial composure and stylish attitude without wide-open singing mouth deformation.
-  \`\`\`
-- **负向提示词硬压 (Negative Suppression)**：
-  \`\`\`text
-  screaming, shouting, exaggerated singing, wide open mouth screaming, theatrical operatic performance, karaoke singing, distorted jaw, strained neck, holding microphone, overacting singing
-  \`\`\`
-
----
-
-## 五、演绎风格根据歌曲风格自动切换矩阵 (Automatic Song Genre-to-Acting Style Matrix)
-用户核心诉求：“那个演绎风格。根据歌曲风格自动切换”。
-
-### 1. 为什么不能千篇一律？
-同一套人物形象，在民谣慢歌中如果动作过于剧烈会显得浮夸轻佻；在说唱中如果低头伤感会丧失律动与态度；在赛博电音中若眼神飘忽则缺乏未来感。
-**因此，Agent 在接收歌曲音频（或歌曲名）时，必须执行“声学/曲风特征分析”，自动切换人物的神态、运镜、光影与口型节律！**
-
-### 2. 八大经典曲风与演绎风格映射矩阵：
-| 歌曲流派 (Genre) | 节奏 (BPM) 与声学特征 | 自动切换演绎神态 (Acting Mood) | 专属镜头动力学 (Camera Motion) | 光影与视效氛围 (Atmosphere) | 口型与身体律动 (Lip & Body Groove) |
-|---|---|---|---|---|---|
-| **深情慢歌 / 伤感民谣** | 60-80 BPM, 钢琴/木吉他, 舒缓呼吸 | 忧郁深沉、眼泛微光、低眉思索、轻咽微叹，沉静内敛 | 浅景深慢速推镜 (f/1.4 Dolly-in), 呼吸感轻微游移 | 窗边雨丝微光、柔和逆光烟尘、低饱和温暖胶片色调 | 极轻微唇瓣开合，气声弱音对齐，间奏完全闭合低头沉思 |
-| **说唱律动 / 潮流R&B** | 85-125 BPM, 808重低音, 切分节奏 | 自信不羁、从容霸气、侧颈微扬、眼神锁定镜头、挑眉从容 | 低角度推拉抓拍 (Low-Angle Glide), 随重音微幅晃动 | 城市街头霓虹溢彩、潮湿反光沥青、高反差明暗剪影 | 随808鼓点身体律动沉肩微晃，咬字利落微动，从不大张嘴唱 |
-| **赛博电子 / 潮酷电音** | 120-135 BPM, 强劲合成器四四拍, 脉冲低音 | 冷峻超然、机械式优雅、深邃凝视、疏离神秘感 | 平滑轨道环绕运镜 (Orbital Glide), 激光穿梭视角 | 赛博蓝紫霓虹、全息光晕弥散、冷调金属反光与体积烟雾 | 唇形精炼利落，配合电子琶音节拍，间奏完全静止如雕塑 |
-| **热血摇滚 / 力量乐队** | 120-160 BPM, 失真电吉他、重鼓强拍 | 桀骜坚定、下颌微收、眼神充满电性张力、压迫感 | 强拍冲击式微抖动 (Punchy Snap), 动态手持呼吸运镜 | 舞台高反差顶光 (Chiaroscuro), 钨丝灯边缘硬轮廓光 | 随失真吉他重音眼神聚焦，唇齿开闭干脆有力，严禁五官扭曲 |
-| **复古微醺 / 慵懒爵士** | 70-110 BPM, 萨克斯风、低音提琴、轻摇摆 | 迷离慵懒、微醺笑意、半阖眼眸、自在漫步、松弛高雅 | 缓慢环形横摇 (Slow Arch Pan), 柔焦怀旧电影镜头 | 暖琥珀色威士忌酒吧暗调、百叶窗斑驳光影、天鹅绒质感 | 悠闲随性微张轻合，随摇摆拍微侧头部，松弛自然无刻意感 |
-| **灵动流行 / 阳光轻快** | 110-128 BPM, 清脆铜管、明朗贝斯线、元气旋律 | 阳光治愈、元气灵动、眉眼含笑、亲和力拉满 | 灵巧跟随平移、轻快前后推拉变焦 (Smooth Zoom) | 干净透亮自然日光、高调清透色彩、通透空气感 | 轻盈语流开合，字句清爽，换气间隙自然抿嘴微笑 |
-| **唯美古风 / 仙侠国潮** | 55-90 BPM, 笛箫古筝琵琶、悠扬空灵弦乐 | 仙风道骨、清冷出尘、顾盼生姿、敛气凝神、宛若画中 | 烟雨微步悬浮慢移 (Floating Drone), 如长卷铺展 | 青黛水墨意境、薄雾晨光、竹影或月色冷光、飘逸微风 | 唇齿含蓄微启，吐气如兰，曲尽闭息若有所思 |
-| **大气史诗 / 电影交响** | 60-140 BPM, 宏大管弦、重击定音鼓、磅礴和声 | 庄严肃穆、坚毅傲岸、胸怀广袤、凝望远方地平线 | 宏大航拍后拉 (Epic Crane Pull-back), 恢弘景深拉开 | 黄金时刻漫天晚霞、云海破晓日光、史诗质感高动态范围 | 沉稳尊贵，仅在主旋律高潮做神圣发音对位，尽显磅礴气场 |
-
-### 3. Agent 自动化执行规则：
-1. **自动曲风嗅探**：根据用户上传文件名（如 \`晴天.mp3\`、\`trap_groove.wav\`、\`cyber_run.flac\`）或用户 prompt 中的歌手/歌曲名自动映射至上述 8 大流派；
-2. **提示词动态编译**：自动将对应的 \`actingMood\`、\`cameraMovement\`、\`lightingAtmosphere\`、\`lipSyncRule\` 注入 H3 Ref2VA 的 \`[summary]\` 与 \`[detailed_description]\`；
-3. **安全防变形兜底**：无论何种曲风，负向提示词必须严焊 \`screaming, shouting, wide open mouth screaming, distorted jaw\`，绝对坚守“高级克制口型对位，决不张大嘴干唱”。
-
----
-
-## 六、极简纯粹音乐驱动对口型执行规范 (Pure Simple Music Lip-Sync SOP)
-用户核心诉求：“不要全线路构建哈，我这个是单纯的音乐驱动画面，对口型的。就算要给画面写提示词，也是很简单的。只是简单你要说谁是谁在唱歌，跟着音乐歌曲。对口型。画面精彩演绎。”
-
-### 1. 极简原则：坚决摒弃重度全流程大论文
-当用户明确要求“纯粹音乐驱动画面对口型”时：
-- **严禁**调用重度 12 步全链、严禁输出 6 大块长篇段落大论文；
-- **只保留核心三要素**：谁在唱 + 跟着歌曲对口型 + 画面精彩演绎！
-
-### 2. 极简黄金三句式提示词结构：
-- **唱歌段落（自动识别歌词注入，让人物跟着唱）**：
-  \`\`\`text
-  <Subject 1> is {角色名字} in <Picture 1>. As the singing vocal plays in <Audio 1>, (S1) passionately and naturally sings along to the lyrics: <d>{自动识别提取的歌词}</d>. (S1)'s lips, jaw, and facial expressions articulate accurately synchronized to each vocal syllable and melody. Between vocal lines, lips close naturally. High-definition cinematic framing in {场景置景与灯光}, delivering a stunning musical performance.
-  \`\`\`
-- **纯乐器间奏段落（人物自然闭口，绝不乱动嘴）**：
-  \`\`\`text
-  <Subject 1> is {角色名字} in <Picture 1>. During this instrumental musical passage of <Audio 1>, (S1) listens and subtly sways to the rhythm. (S1)'s mouth remains naturally and completely closed with zero lip motion, maintaining attentive poise. High-definition cinematic framing in {场景置景与灯光}, delivering a captivating visual performance.
-  \`\`\`
-
-### 3. 时间轴自动识别与帧率对齐 (Timeline & Frame Calculation)：
-- **毫秒级时间戳**：精准标记每个段落的起止点（如 \`00:04.50 - 00:15.20\`，时长 10.7s）；
-- **H3 物理帧数对齐**：按 $17n+5$ 官方公式自动算出对应帧数（如 10.7s 对应 260 帧，15s 对应 362 帧）；
-- **标准 LRC/SRT 导出**：自动生成带 \`[00:04.50]\` 格式的时间轴歌词，方便后期剪辑与精确贴唱。
-
-### 4. 极简负向提示词：
-\`\`\`text
-out-of-sync audio, mouth opening during silence, distorted jaw, unnatural teeth, screaming face, robotic lips, stickers, low quality
-\`\`\`
-
-### 5. 终剪母带替换（剥离 H3 电音杂音 · 重新合成参考音）：
-H3 扩散模型输出的原始视频音轨存在有损 AI 电音杂质。出片后执行单行 FFmpeg 指令：
-\`\`\`bash
-# 剥离 H3 生成杂音 (-map 0:v:0)，直贴用户原始参考音 (-map 1:a:0)
-ffmpeg -y -i h3_raw_video.mp4 -i user_reference_music.mp3 \
-  -map 0:v:0 -map 1:a:0 \
-  -c:v copy -c:a aac -b:a 320k -shortest 最终对口型MV_原声母带.mp4
-\`\`\`
-
-### 6. 底层直驱节点：
-- **Node 174 (LoadAudio)**：传入用户上传的音频或歌曲；
-- **Node 137 (LoadImage)**：传入人物角色立绘；
-- **Node 136 (MiniMaxH3ReferenceToVideo)**：联合采样，一键出片！
-\`\`\``
-  },
-  {
     id: 'skill_md',
     name: 'SKILL.md (V2.0 整合版)',
     type: 'markdown',
@@ -400,18 +196,15 @@ import re, hashlib
 
 H3_SECTIONS = ["[subject_definitions]", "[summary]", "[retention_analysis]", "[detailed_description]", "[overall_soundscape]", "[non_diegetic_music]"]
 FORBIDDEN_ANTI_SUBTITLES = ["no subtitle", "no subtitles", "no text", "no words", "no caption"]
-SURFACE_INVARIANCE_KEYWORDS = ["pristine solid finish", "without stickers", "uniform original color", "纯净无贴纸", "表面一致"]
 
 def validate_h3_prompt(text: str) -> dict:
     lower = text.lower()
     missing = [s for s in H3_SECTIONS if s not in lower]
     has_trap = any(w in lower for w in FORBIDDEN_ANTI_SUBTITLES)
-    has_surface_shield = any(k in lower for k in SURFACE_INVARIANCE_KEYWORDS)
     return {
         "passed": len(missing) == 0 and not has_trap,
         "missing_sections": missing,
-        "subtitle_trap_detected": has_trap,
-        "surface_invariance_shield_active": has_surface_shield
+        "subtitle_trap_detected": has_trap
     }`
   },
   {
@@ -458,13 +251,7 @@ def validate_h3_prompt(text: str) -> dict:
 
 ## 3. 🤐 强制嘴唇静止 / 禁止开口
 - 正向：非发声镜注入 mouth naturally closed, lips completely still, not moving along with vocals。
-- 负向压制：singing, mouth open, lip-sync, talking, speaking, vocalizing, open lips, moving mouth。
-
-## 4. 🛡️ 角色机体/服装防涂鸦贴纸锁 (Character Surface Invariance & Anti-Decal Shield)
-- 根因定位：H3 底模 Cross-Attention 特征外溢（背景霓虹夜市、招牌广告字被模型误当作机体涂鸦填补空白甲面）。
-- 正向防卫：正向人物定义必须加入绝对纯净声明：\`The character features a pristine solid finish without any stickers, logos, body graffiti, decorative decals, or hanging accessories. All body plates and fabrics maintain their uniform original color without any surface markings.\`
-- 负向硬压：强制注入 \`stickers, decals, body graffiti, painted emblems, waist logo, hanging charms, cartoon decals, body art, scratches, messy armor, decorated chassis, branded stickers, thigh patches, graffiti on suit\`。
-- 跨段接力净图：第 1 段尾帧若存在微瑕，需经清洗去除杂色后再行送入下段垫图，切断代际遗传！`
+- 负向压制：singing, mouth open, lip-sync, talking, speaking, vocalizing, open lips, moving mouth。`
   },
   {
     id: 'aspect_ratio_md',
