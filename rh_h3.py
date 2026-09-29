@@ -39,28 +39,32 @@ class RunningHubH3UltimateDispatcher:
         self.ssl_ctx.check_hostname = False
         self.ssl_ctx.verify_mode = ssl.CERT_NONE
 
-    def extract_multi_detail_keyframes(self, video_path_or_url: str, shot_id: str) -> Dict[str, str]:
+    def extract_multi_detail_keyframes(self, video_path_or_url: str, shot_id: str, duration: float = 15.0) -> Dict[str, str]:
         """
-        从 10 秒视频中提取【多角度多细节人物定妆矩阵】(Multi-Detail Character Extraction Matrix)：
-        1. 全身定妆帧 (Full-Body) -> keyframe_{shot_id}_full_body.png -> ref_image_0 (<Picture 1>)
+        从 15 秒 (362 帧) / 10 秒 (243 帧) 视频中提取【15秒尾帧垫图与多细节人物定妆矩阵】：
+        1. 终极尾帧截图 (Tail-Frame Pad Image at 15.0s / 362f) -> keyframe_{shot_id}_tail_frame_pad.png -> ref_image_0 (<Picture 1>)
         2. 上半身/胸口标识特写帧 (Upper & Chest) -> keyframe_{shot_id}_upper_detail.png -> ref_image_1 (<Picture 2>)
         3. 下半身/裤套腿部特写帧 (Lower & Legs) -> keyframe_{shot_id}_lower_detail.png -> ref_image_2 (<Picture 3>)
-        防止衣服标识、花纹、臂章与腿套细节丢失！
+        
+        【为什么截图做垫图？】：
+        AI 视频模型跨段会遗忘上一段的人物位置与手持道具。将第 15 秒尾帧截图强制喂给第 2 段首帧做垫图，
+        彻底锁死 15s~16s 之间的人物姿态、茶杯位置与老房子光影，杜绝变脸跳切！
         """
-        print(f"[*] 正在从视频 {video_path_or_url} 中精准抽取【多角度多细节人物定妆矩阵】(防止服装细节丢失)...")
+        tail_ts = f"00:00:{max(1.0, duration - 0.05):06.3f}"
+        print(f"[*] 正在从视频 {video_path_or_url} 中精准抽取【15秒尾帧垫图卡】(时间点: {tail_ts}) 与细节矩阵...")
         output_dir = "workspace"
         os.makedirs(output_dir, exist_ok=True)
 
         results = {
-            "ref_image_0": os.path.join(output_dir, f"keyframe_{shot_id}_full_body.png"),
+            "ref_image_0": os.path.join(output_dir, f"keyframe_{shot_id}_tail_frame_pad.png"),
             "ref_image_1": os.path.join(output_dir, f"keyframe_{shot_id}_upper_detail.png"),
             "ref_image_2": os.path.join(output_dir, f"keyframe_{shot_id}_lower_detail.png")
         }
 
         time_configs = [
-            ("00:00:09.500", results["ref_image_0"], "上一段末尾关键尾帧 (10s 绝对尾帧)"),
+            (tail_ts, results["ref_image_0"], f"第 {duration} 秒终极尾帧截图 (下一段首帧垫图母本)"),
             ("00:00:01.500", results["ref_image_1"], "上半身/胸口标识特写帧"),
-            ("00:00:08.500", results["ref_image_2"], "下半身/裤套腿部特写帧")
+            (f"00:00:{max(1.0, duration - 1.5):06.3f}", results["ref_image_2"], "下半身/裤套腿部特写帧")
         ]
 
         for ts, out_path, desc in time_configs:
@@ -186,8 +190,8 @@ class RunningHubH3UltimateDispatcher:
         """
         if not self.api_key:
             print(f"[!] Warning: RUNNINGHUB_API_KEY 未设置，进入沙盒验证模式 (Workflow ID: {workflow_id})。")
-            simulated_video = f"https://www.runninghub.cn/output/sample_{shot_id}_10s.mp4"
-            extracted_matrix = self.extract_multi_detail_keyframes(simulated_video, shot_id) if auto_extract_keyframe else {}
+            simulated_video = f"https://www.runninghub.cn/output/sample_{shot_id}_{int(duration)}s.mp4"
+            extracted_matrix = self.extract_multi_detail_keyframes(simulated_video, shot_id, duration) if auto_extract_keyframe else {}
 
             return {
                 "status": "SUCCESS",
@@ -278,7 +282,7 @@ class RunningHubH3UltimateDispatcher:
             output_urls = res.get("outputUrls", [])
             if output_urls:
                 video_url = output_urls[0]
-                extracted_matrix = self.extract_multi_detail_keyframes(video_url, shot_id)
+                extracted_matrix = self.extract_multi_detail_keyframes(video_url, shot_id, duration)
                 res["nextRefImages"] = extracted_matrix
                 res["nextRefImage0"] = extracted_matrix.get("ref_image_0")
 
