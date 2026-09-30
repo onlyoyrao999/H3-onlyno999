@@ -145,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto py-2 scrollbar-none border-t border-slate-800/80 text-xs">
             {/* Genre selector integrated inline */}
             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-slate-800 shrink-0">
-              {(['short_drama', 'mv', 'commercial'] as const).map((g) => {
+              {(['short_drama', 'wuxia_fight', 'mv', 'commercial'] as const).map((g) => {
                 const meta = PRODUCTION_GENRES[g];
                 const isSelected = genre === g;
                 return (
@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => onSelectGenre(g)}
                     className={`px-2 py-1 rounded text-[11px] font-semibold transition-all ${
                       isSelected
-                        ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/40'
+                        ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 shadow-sm'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >

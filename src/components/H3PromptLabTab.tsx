@@ -2,13 +2,16 @@ import React, { useState, useMemo } from 'react';
 import {
   Sparkles, ShieldCheck, AlertCircle, CheckCircle2, Copy, Check, ArrowRight,
   RefreshCw, BookOpen, ExternalLink, HelpCircle, VolumeX, EyeOff, MicOff, Ban, Sliders,
-  Film, Smartphone, Monitor, Square, Tv, Compass, FileText, CheckCheck, Play, Clock
+  Film, Smartphone, Monitor, Square, Tv, Compass, FileText, CheckCheck, Play, Clock,
+  Swords, Shield, Zap, Flame, Crosshair
 } from 'lucide-react';
 import {
   AspectRatioType,
   ASPECT_RATIO_CONFIGS,
   DEMO_DRAMA_SEGMENTS,
-  DramaSegmentShot
+  DramaSegmentShot,
+  ProductionGenre,
+  PRODUCTION_GENRES
 } from '../data/h3PipelineData';
 import {
   validateH3Prompt,
@@ -30,8 +33,8 @@ interface H3PromptLabTabProps {
 export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch }) => {
   // Step & Mode State
   const [activeStep, setActiveStep] = useState<'step1_seedance' | 'step2_h3_ref2va' | 'step3_mv_negative'>('step1_seedance');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatioType>('9:16');
-  const [targetGenre, setTargetGenre] = useState<'short_drama' | 'commercial' | 'mv'>('short_drama');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatioType>('16:9');
+  const [targetGenre, setTargetGenre] = useState<ProductionGenre>('wuxia_fight');
   const [selectedArchetype, setSelectedArchetype] = useState<StoryArchetype>(STORY_ARCHETYPES[0]);
   const [selectedSpeakerId, setSelectedSpeakerId] = useState<'S1' | 'S2' | 'S3'>('S1');
 
@@ -431,9 +434,119 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
             </span>
           </div>
 
+          {/* Mode & Genre Switcher Bar */}
+          <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-950 border border-slate-800 flex-wrap">
+            <span className="text-xs font-bold text-slate-400 px-2 font-mono">选择题材/模式:</span>
+            {[
+              { id: 'wuxia_fight' as ProductionGenre, label: '⚔️ 武侠仙法·动作打斗 (Fight FX Anchor)', badge: '官方固化 Skill' },
+              { id: 'short_drama' as ProductionGenre, label: '🎭 竖版短剧 (Short Drama)', badge: '15s×4段' },
+              { id: 'mv' as ProductionGenre, label: '🎵 音乐 MV (Music Video)', badge: '45%发声率' },
+              { id: 'commercial' as ProductionGenre, label: '🎬 商业广告 (Commercials)', badge: '微距质感' }
+            ].map(m => {
+              const isActive = targetGenre === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    setTargetGenre(m.id);
+                    const matchingArch = STORY_ARCHETYPES.find(a => a.genre === m.id) || STORY_ARCHETYPES[0];
+                    handleSelectArchetype(matchingArch);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white shadow-md ring-1 ring-amber-400/50'
+                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                  }`}
+                >
+                  <span>{m.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                    isActive ? 'bg-black/30 text-amber-200' : 'bg-slate-800 text-slate-500'
+                  }`}>
+                    {m.badge}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dedicated Fight FX Anchor Prompter Solidified Skill Banner */}
+          {targetGenre === 'wuxia_fight' && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/40 via-red-950/30 to-slate-950 border border-amber-500/50 space-y-3 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/30 pb-2">
+                <div className="flex items-center gap-2">
+                  <Swords className="w-5 h-5 text-amber-400 animate-pulse" />
+                  <span className="text-sm font-bold text-white font-mono">
+                    ⚔️ 动作打斗戏·武侠仙法·特效锚点系统 (Fight FX Anchor Prompter)
+                  </span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/40 font-semibold font-mono">
+                    Skill 已官方固化
+                  </span>
+                </div>
+                <span className="text-xs text-amber-300/80 font-mono">
+                  杜绝穿模 · 武器刚体锁 · 严禁乱说话
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div className="p-2.5 rounded-lg bg-black/40 border border-amber-500/20 space-y-1">
+                  <div className="font-bold text-amber-300 flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>特效锚点三段时序 (3-Stage FX)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    [0~1.5s 蓄力发力] ➔ [1.5~2.5s 接触碰撞火花/光爆] ➔ [2.5~4.5s 犁地后退阻尼]，绝不写空洞形容词。
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-black/40 border border-red-500/20 space-y-1">
+                  <div className="font-bold text-red-300 flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-red-400" />
+                    <span>防乱说话短喝台词锁 (Anti-Hallucination)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    打斗高危状态，台词严限短促战吼（≤6字，如破！斩！纳命来！），音效清除背景音乐，防止模型胡言乱语。
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-black/40 border border-cyan-500/20 space-y-1">
+                  <div className="font-bold text-cyan-300 flex items-center gap-1.5">
+                    <Crosshair className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>武器刚体与抗穿模 (Rigid Body Lock)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    长剑/长刀/长枪几何线条刚体锁死不变软，二人空间分离独立，火花气浪不污染面部。
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Insertion Anchor Tags */}
+              <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-amber-500/20 text-xs">
+                <span className="text-slate-400 font-mono text-[11px]">快捷插入招式锚点:</span>
+                {[
+                  { label: '🗡️ 万剑归宗剑流', text: '胸前秋水古剑青霜暴涨，百柄白金虚幻飞剑如孔雀开屏在身后两米展开，剑气激荡撕开云海狂涌向前，' },
+                  { label: '⚔️ 枪尖回马磕飞刀', text: '腰马合一猛然回身旋枪，枪尖在身侧一米处连磕三枚飞刀暴出刺目金铁火星，借回身之势直刺阴影，' },
+                  { label: '⚡ 紫霄神雷掌心雷', text: '右手五指紧握，指缝间压抑不住地喷射出耀目炽白电芒，空气充斥焦糊味，猛然推出掌心雷，' },
+                  { label: '🛡️ 护体罡气涟漪', text: '周身升起凝厚淡金琉璃护罩，表面流淌八卦符篆微光，受到轰击泛起剧烈金色涟漪随后龟裂爆碎，' },
+                  { label: '🥋 刀剑硬架火花', text: '短刀与长枪硬撞爆出一团刺目金石火星，震散周身暴雨，双足在青石板向后倒滑三尺犁出深深泥槽，' }
+                ].map(tag => (
+                  <button
+                    key={tag.label}
+                    type="button"
+                    onClick={() => {
+                      setCustomStoryInput(prev => prev + tag.text);
+                    }}
+                    className="px-2 py-1 rounded bg-amber-500/20 text-amber-200 border border-amber-500/30 hover:bg-amber-500/30 text-[11px] font-mono transition"
+                  >
+                    + {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Archetype Quick-Select Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {STORY_ARCHETYPES.map((arch) => {
+            {STORY_ARCHETYPES.filter(a => targetGenre === 'wuxia_fight' ? (a.genre === 'wuxia_fight' || a.id.includes('tiedan') || a.id.includes('dining')) : true).map((arch) => {
               const isSelected = selectedArchetype.id === arch.id;
               return (
                 <div
@@ -635,6 +748,55 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
           {/* Prompt Display and Section Inspector */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-8 space-y-4">
+              {/* Fight FX Physical Audit Card when action scene */}
+              {(targetGenre === 'wuxia_fight' || /刀|剑|枪|拳|掌|刺客|飞刀|打斗|拼杀|对决|神雷|仙法/i.test(convertedOutput)) && (
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-black border border-amber-500/40 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold font-mono">
+                    <span className="text-amber-300 flex items-center gap-1.5">
+                      <Swords className="w-4 h-4 text-amber-400" />
+                      <span>⚔️ Fight FX Anchor 动作戏物理与防乱说话核查:</span>
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      防穿模 · 防变软 · 防乱说话生效中
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                    <div className="p-2 rounded bg-black/40 border border-slate-800 space-y-0.5">
+                      <div className="text-slate-400">空间接触锚点</div>
+                      <div className="text-amber-300 font-bold flex items-center gap-1">
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>锁定碰撞面</span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded bg-black/40 border border-slate-800 space-y-0.5">
+                      <div className="text-slate-400">防乱说话门禁</div>
+                      <div className="text-emerald-300 font-bold flex items-center gap-1">
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>短促战吼(≤6字)</span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded bg-black/40 border border-slate-800 space-y-0.5">
+                      <div className="text-slate-400">武器几何刚体</div>
+                      <div className="text-cyan-300 font-bold flex items-center gap-1">
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>锁死不弯软</span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded bg-black/40 border border-slate-800 space-y-0.5">
+                      <div className="text-slate-400">动作物理拟音</div>
+                      <div className="text-purple-300 font-bold flex items-center gap-1">
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>金石拟音/禁BGM</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-2 border-b border-slate-800">
                   <span>MiniMax H3 官方 Ref2VA 规范文本 (完全可出片):</span>

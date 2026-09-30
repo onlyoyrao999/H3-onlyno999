@@ -10,7 +10,7 @@
  * - Anti-trap Consistency Locks (Anti-head-cutoff, anti-hallway, anti-subtitle trap)
  */
 
-export type ProductionGenre = 'mv' | 'short_drama' | 'commercial';
+export type ProductionGenre = 'mv' | 'short_drama' | 'commercial' | 'wuxia_fight';
 
 export type AspectRatioType = '16:9' | '9:16' | '21:9' | '1:1' | '4:3' | '3:4';
 
@@ -133,6 +133,17 @@ export const PRODUCTION_GENRES: Record<ProductionGenre, GenreMeta> = {
     segmentCount: 4,
     frameFormula: '17n+5 (15s = 362 帧)',
     keyFeature: '电影级光影反差 + 0 乱码字 + 动作动势匹配'
+  },
+  wuxia_fight: {
+    id: 'wuxia_fight',
+    name: '⚔️ 武侠仙法·动作打斗 (Fight FX Anchor)',
+    tagline: '特效力学锚点 · 三段时序防穿模 · 招式破空与金石拟音 · 严禁乱说话',
+    badge: 'Fight FX Anchor 官方固化 Skill',
+    description: '专为武侠拼刀、仙法神通对轰、近身格斗定制。将动作拆解为【发力蓄力 ➔ 碰撞受力 ➔ 惯性阻尼与收束】，严格约束四肢不扭曲、武器刚体不软化、台词仅限极短战吼。',
+    defaultDuration: 15.083,
+    segmentCount: 4,
+    frameFormula: '17n+5 (15s = 362 帧 / 单动作 3~5s 连贯接力)',
+    keyFeature: '特效空间锚点 + 纯净物理拟音 (Foley) + 防乱说话短喝限制'
   }
 };
 

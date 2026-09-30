@@ -8,6 +8,46 @@ interface SkillSpecModalProps {
 
 const SPEC_FILES = [
   {
+    id: 'fight_fx_skill_md',
+    name: '⚔️ 武侠仙法·动作打斗戏 SKILL.md (特效锚点固化)',
+    type: 'markdown',
+    path: '/skills/fight-fx-anchor-prompter/SKILL.md',
+    content: `# 动作打斗戏·武侠仙法·特效锚点提示词专家 (Fight FX Anchor Prompter)
+
+版本：1.0.0｜专为动作打斗、武侠刀剑对决、仙法神通碰撞、近身搏杀定制的特效锚点 (FX Anchor) 体系
+
+本 Skill 将分镜/动作戏剧本中的招式对决，精准转化为 MiniMax H3 原生音画同步的高稳定性打斗提示词。通过物理空间锚点、接触面受力反馈、三段式分秒节奏与硬性约束，彻底解决 AI 视频模型在打斗戏中常出现的"肢体穿模扭曲、武器凭空消失/变软、二人打斗融为一体、特效乱飞失控、角色临场废话乱说话"等顽疾！
+
+## 核心原则：
+1. 空间接触锚点 (Contact Surface Anchor)：刀刃交击于正中三寸、拳面砸击锁骨、剑气穿刺血盾；
+2. 三段时序分秒 (0-1.5s 蓄力 ➔ 1.5-2.5s 碰撞火花 ➔ 2.5-4.5s 犁地后退阻尼)；
+3. 防乱说话铁律：打斗高压状态下，台词仅限 ≤6 字短喝 (<d>[中文] 破！</d>)，音效清除背景音乐与对白外闲杂人声；
+4. 约束死锁：武器刚体锁定不变弯，角色关节不扭曲，双人空间独立不融合。`
+  },
+  {
+    id: 'fight_fx_formula_md',
+    name: '⚡ 特效锚点力学公式 (FX Anchor Physics)',
+    type: 'markdown',
+    path: '/skills/fight-fx-anchor-prompter/references/fx-formula.md',
+    content: `# 特效锚点三段力学公式与物理受击模型
+- A_origin: 发力起始锚点 (手腕旋动/足尖拧转/剑柄微颤)
+- T_trajectory: 轨迹动势矢量 (45度斜撩/半月弧斩)
+- C_contact: 碰撞接触受力面 (刀剑正中交错点，爆出火星与环形气浪)
+- F_feedback: 惯性受力阻尼 (双足犁地滑退三尺，石板飞溅碎屑)
+- 台词纯化：短喝发力，严禁长篇大论，防止模型口型抽搐乱说话。`
+  },
+  {
+    id: 'fight_fx_cases_md',
+    name: '📚 动作打斗·武侠仙法经典案例库',
+    type: 'markdown',
+    path: '/skills/fight-fx-anchor-prompter/case-library.md',
+    content: `# 动作打斗·武侠仙法经典案例库
+- 案例一：仙法篇·蜀山御剑万剑归宗破恶鬼血煞盾
+- 案例二：武侠篇·暴雨竹林长枪回马破刺客六路飞刀
+- 案例三：格斗篇·破庙黑衣刀客雁翎刀重劈格挡震波
+严格遵循 MiniMax H3 官方 subject_definitions + 声音设定 + detailed_description 规范。`
+  },
+  {
     id: 'three_skills_chain_md',
     name: '三技能架构规范 (前两步焊死+云端接口可换)',
     type: 'markdown',

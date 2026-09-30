@@ -220,6 +220,52 @@ export function validateH3Prompt(promptText: string, options?: { duration?: numb
     });
   }
 
+  // 8. ⚔️ 武侠仙法·动作打斗与特效锚点专项检测 (Fight FX Anchor & Anti-Hallucination)
+  const isFightScene = /刀|剑|枪|拳|掌|刺客|飞刀|打斗|拼杀|对决|神雷|仙法|法阵|重锤|格挡|气浪|交击|出招/i.test(text);
+  if (isFightScene) {
+    // 8.1 检查防乱说话与台词长度限制 (打斗中绝不允许长篇废话)
+    const rawDialogues = Array.from(text.matchAll(/<d>\[.*?\](.*?)<\/d>/g)).map(m => m[1].trim());
+    const tooLongDialogues = rawDialogues.filter(d => d.length > 12);
+    const antiHallucinationPassed = tooLongDialogues.length === 0;
+
+    items.push({
+      id: 'fight_anti_hallucination',
+      name: '动作打斗·防乱说话与短喝台词锁 (Anti-Hallucination Dialogue)',
+      passed: antiHallucinationPassed,
+      severity: antiHallucinationPassed ? 'info' : 'error',
+      message: antiHallucinationPassed
+        ? '台词符合打斗高压对抗法则：短促有力（≤12字短喝），杜绝长篇废话与模型口型抽搐乱说。'
+        : `打斗场景检测到过长台词（"${tooLongDialogues[0]}" 共 ${tooLongDialogues[0].length} 字）！激烈打斗时台词过长会导致模型动作停滞、肢体变形或出现幻觉废话！`,
+      tip: '打斗中台词应为 1~6 字短喝（如：<d>[中文] 破！</d>、<d>[中文] 纳命来！</d>），禁止闲聊长句。'
+    });
+
+    // 8.2 检查特效锚点与物理受力接触面 (Contact Anchor & Impact Physics)
+    const hasContactSurface = /交击|碰撞|火星|火花|气浪|犁地|滑退|硬架|贯穿|爆裂|震波|穿透|受力/i.test(text);
+    items.push({
+      id: 'fight_contact_anchor',
+      name: '动作戏·特效空间锚点与受力反馈检测 (FX Anchor)',
+      passed: hasContactSurface,
+      severity: hasContactSurface ? 'info' : 'warning',
+      message: hasContactSurface
+        ? '已设定明确的物理接触面与受力反馈（如刀剑交错火星、后退犁地阻尼），有效防止人物动作失真悬浮。'
+        : '动作描述中缺乏具体受力接触面或物理碰撞（如火花、地面犁地划痕），AI 极易生成无物理反作用力的棉花拳脚。',
+      tip: '必须写明碰撞发生在哪一点（如二人正中刀剑相交）、爆出多少火星/气浪、受击者双足滑退多少距离。'
+    });
+
+    // 8.3 检查防穿模与武器刚体锁定 (Anti-Fusion & Rigid Body Lock)
+    const hasRigidLock = /刚体|穿模|扭曲|形变|多肢|骨骼|独立|不融合/i.test(text);
+    items.push({
+      id: 'fight_rigid_anti_fusion',
+      name: '动作戏·武器刚体与肢体防穿模死锁 (Rigid Body Lock)',
+      passed: hasRigidLock,
+      severity: hasRigidLock ? 'info' : 'warning',
+      message: hasRigidLock
+        ? '【约束】中已严格注入武器刚体锁定、关节不扭曲、二人独立分立防穿模硬规则。'
+        : '【约束】中未强调武器刚体锁定与二人防穿模！AI 打斗时极易出现剑身变弯变软、二人打斗融为一体、多肢体异变。',
+      tip: '在【约束】中补充："兵刃几何结构严格刚体锁定，不弯折软化；角色肢体不穿模扭曲；二人空间分离清晰，不融为一体"。'
+    });
+  }
+
   // Calculate Frames
   const duration = options?.duration || 15.083;
   const { frames } = calculateH3Frames(duration);
@@ -243,10 +289,10 @@ export function validateH3Prompt(promptText: string, options?: { duration?: numb
   };
 }
 
-import { AspectRatioType, ASPECT_RATIO_CONFIGS } from '../data/h3PipelineData';
+import { AspectRatioType, ASPECT_RATIO_CONFIGS, ProductionGenre } from '../data/h3PipelineData';
 
 export interface ConvertOptions {
-  genre: 'mv' | 'short_drama' | 'commercial';
+  genre: ProductionGenre;
   aspectRatio?: AspectRatioType;
   shotScale?: string;
   speakerId?: string;
@@ -259,7 +305,7 @@ export interface ConvertOptions {
 export interface StoryArchetype {
   id: string;
   title: string;
-  genre: 'short_drama' | 'mv' | 'commercial';
+  genre: ProductionGenre;
   aspectRatio: AspectRatioType;
   speakerId: 'S1' | 'S2' | 'S3';
   seedanceProse: string;
@@ -268,6 +314,26 @@ export interface StoryArchetype {
 }
 
 export const STORY_ARCHETYPES: StoryArchetype[] = [
+  {
+    id: 'fight_fx_wuxia_bamboo',
+    title: '⚔️ 武侠动作：暴雨竹林长枪回马破飞刀 (Fight FX Anchor)',
+    genre: 'wuxia_fight',
+    aspectRatio: '16:9',
+    speakerId: 'S1',
+    seedanceProse: '狂风骤雨的幽深竹林，密密麻麻的苍翠毛竹被暴风撕扯倾斜，满地湿滑竹叶与水泊。黑衣蒙面刺客自暗处疾射六枚柳叶飞刀直取后背；银枪少侠（约22岁，短打劲装束袖，双手端丈二镔铁点钢枪，红缨如烈火）听风辨位，腰马合一猛然回身旋枪，枪尖连磕三枚飞刀暴出刺目金铁火星，枪头红缨急抖水珠，枪势如游龙出水单手扣枪尾直刺竹丛阴影，枪尖破竹炸裂，口中沉声断喝："现身！"。武侠动作打斗，电影感光影，无多余废话。',
+    dialogue: '现身！',
+    whySeedanceFailsInH3: '传统动作戏写法常泛写"两人激烈搏斗"，极易引发 AI 武器软化变弯、肢体穿模扭曲、二人融体以及角色临场乱说废话。Fight FX Anchor 体系通过【0-1.5s 旋枪蓄力 ➔ 1.5-2.5s 枪尖磕刀火星碰撞 ➔ 2.5-4.5s 破竹与阻尼收束】三段时序，配合长枪刚体锁定与纯净金石拟音，实现 100% 动作零穿模！'
+  },
+  {
+    id: 'fight_fx_xianxia_sword_array',
+    title: '⚡ 仙法神通：蜀山万剑归宗轰击魔煞重盾 (Fight FX Anchor)',
+    genre: 'wuxia_fight',
+    aspectRatio: '16:9',
+    speakerId: 'S1',
+    seedanceProse: '万丈悬崖顶端的青罡石古剑台，四周翻涌云海与隐约紫电。蜀山白袍剑仙双目泛金芒，双手极速掐引天罡剑诀，胸前悬浮本命秋水古剑青霜暴涨，百柄白金虚幻飞剑如孔雀开屏在身后两米展开，剑气激荡撕开云海，剑仙抬指虚点冷喝："万剑归宗，破！"；魁梧黑甲魔将双手横握血煞重锤猛击地面，瞬间撑起两丈高的狰狞恶鬼血煞护盾，百柄飞剑如连珠暴雨轰在血盾中心，冲击波激荡刮碎青石地面，魔将双足犁地后滑三米咆哮："给我碎！"。仙侠打斗大片，震撼特效与音效。',
+    dialogue: '万剑归宗，破！',
+    whySeedanceFailsInH3: '仙法对轰常因光效泛滥导致角色五官畸变，或特效与人物脱节。本体系严格将飞剑接触面锚定于血盾正中三寸，能量波向四周环形扩散不遮脸，双足受力后退阻尼写实，台词短促有力绝不乱说话！'
+  },
   {
     id: 'tiedan_cow_safety',
     title: '乡村喜剧：机器人铁蛋放牛 (大白话安全脱敏实战)',
@@ -446,6 +512,66 @@ export function convertAwesomeSeedanceToH3(
   const musicDirective = suppressBgm
     ? FORBIDDEN_WORDS_LEXICON.bgmSuppressionPositivePhrase
     : 'A low cinematic orchestral underscore with subtle acoustic strings building steady dramatic tension.';
+
+  // ⚔️ 专属处理：武侠仙法·动作打斗与特效锚点 (Fight FX Anchor)
+  if (genre === 'wuxia_fight' || rawPrompt.includes('飞刀') || rawPrompt.includes('长枪') || rawPrompt.includes('万剑归宗') || rawPrompt.includes('剑仙') || rawPrompt.includes('魔将') || rawPrompt.includes('刀客') || rawPrompt.includes('打斗') || rawPrompt.includes('拼刀') || rawPrompt.includes('武侠') || rawPrompt.includes('仙法') || rawPrompt.includes('回马枪')) {
+    if (rawPrompt.includes('万剑') || rawPrompt.includes('剑仙') || rawPrompt.includes('魔将') || rawPrompt.includes('仙法') || rawPrompt.includes('剑台') || rawPrompt.includes('雷法')) {
+      return `subject_definitions（主体定义）:
+<Subject 1> 是 <Picture 1> 中的云海古剑台场景：万丈悬崖之上的古老悬空剑台，地面由巨大青罡石拼接、镌刻古拙金色八卦符纹；四周云海翻涌、紫电隐现于远山云层。是剑台环境与空间结构参考；场景物件以描述为准，全程不得添加、移动或碰触其他物件。
+<Subject 2> 是 <Picture 2> 中的蜀山剑仙：约24岁青年道士，束发金冠，身着白青相间广袖道袍、领口刺绣银云纹，眼神锐利如电；身前悬浮一柄三尺秋水古剑，周身缭绕丝缕青色剑罡气。
+<Subject 3> 是 <Picture 3> 中的黑袍魔将：身躯魁梧雄壮，身披黑色重甲并缠绕暗红锁链，手持一把宽刃血煞骨朵重锤，面覆狰狞青铜鬼面。
+<Subject 4> 是 <Picture 4> 作为起始画面参考图，控制二人相距十米对峙构图与云海光影。
+声音设定：
+<Picture 2> 是剑仙用 (S1) 标记，声线清冷沉稳、吐气如冰，并在全片保持一致
+<Picture 3> 是魔将用 (S2) 标记，声线凶煞浑厚，并在全片保持一致
+detailed_description:
+【Shot 1｜0–4秒｜中景仰拍·剑诀引动万剑分化】
+【主体】<Subject 2> 居画面中央偏左，悬浮古剑在胸前高速旋转。
+【动作】<Subject 2> (S1) 双足踏坤位未移分毫，右臂如挽狂澜、剑指凌空极速变幻成天罡剑诀；胸前秋水古剑瞬间爆发出耀目青霜光柱，一剑化百，上百柄虚幻白金飞剑如孔雀开屏在身后两米扇形排开，每柄飞剑剑尖微颤、剑意直冲云霄。剑仙双目泛起微白金芒，剑指猛然向前虚点，冷声断喝：
+<d>[中文] ${extractedDialogue || '万剑归宗，破！'}</d>
+上百柄飞剑化作一道湛蓝剑气洪流，呼啸撕开云海狂涌向前。
+【镜头】${arConfig.label} 中景微仰拍，伴随剑阵展开镜头平稳向后略微拉开，展现庞大剑阵全貌与云海受气浪翻卷之势。
+【音效】百柄飞剑出鞘之清脆金属蜂鸣 (Swords unison ring)；高频穿空音爆；短促凌厉喝声；呼啸风浪声；无背景音乐，无对白外杂音。
+【约束】人物身形端正无扭曲，道袍广袖自然被剑风向后吹扬；飞剑阵列轨迹整齐、几何结构锋利不变形；无杂音。
+
+【Shot 2｜4–7秒｜中景正侧·飞剑撞击魔煞血盾产生剧烈能量波】
+【主体】<Subject 3> 居画面右侧架起重盾，<Subject 2> 剑流自左侧轰击。
+【动作】<Subject 3> (S2) 双手横握重锤骨朵，重击在青石地面，砸出深凹碎坑；重锤表面黑红血雾狂涌，瞬间张开一面两丈高的狰狞恶鬼血煞护盾；百柄飞剑洪流如连珠暴雨狠狠撞击在血盾正中心，交汇处激荡起一圈圈刺目白金与暗红交织的冲击波，将剑台青石板生生刮掉一层！魔将被巨大推力推得双膝微弯、战靴后滑三米，双臂青筋暴起，咆哮道：
+<d>[中文] 给我碎！</d>
+最后一柄本命古剑撞上血盾，咔嚓一声在血盾正中撞出蛛网裂纹。
+【镜头】${arConfig.label} 水平正侧横移中景，剧烈碰撞点伴随高频微幅震颤，完美展现受击物理阻尼。
+【音效】密集金属与厚重护盾撞击声；能量激荡低频共振；碎石激射声；凶悍怒吼；无多余对白，无背景音乐。
+【约束】角色肢体无穿模，血盾与飞剑相交界限分明；青石板破坏轨迹物理真实；面容面具完好无畸变；排除表情夸张、动作幅度过大或任何笑容轻松表情。`;
+    }
+
+    // 默认武侠竹林长枪飞刀对决
+    return `subject_definitions（主体定义）:
+<Subject 1> 是 <Picture 1> 中的幽深竹林场景：密密麻麻的苍翠毛竹林，细密雨丝倾斜而下，满地湿滑竹叶；狂风掠过竹林，竹子大幅度向右倾斜。是环境结构参考；竹林陈设以此为准，全程不得添加其他非自然物件。
+<Subject 2> 是 <Picture 2> 中的银枪少侠：约22岁，劲装束袖，发系红带，双手稳稳端着一杆丈二镔铁点钢枪，枪缨如一团燃烧的红火，枪尖雪亮。
+<Subject 3> 是 <Picture 3> 中的暗影刺客：蒙黑面巾，身手矫健，穿灰黑夜行衣，双手十指各夹三枚柳叶飞刀。
+<Subject 4> 是 <Picture 4> 作为起始画面参考图，控制枪尖指向与刺客隐匿位置。
+声音设定：
+<Picture 2> 是少侠用 (S1) 标记，声线英武果敢，并在全片保持一致
+<Picture 3> 是刺客用 (S2) 标记，声线低哑阴沉，并在全片保持一致
+detailed_description:
+【Shot 1｜0–4秒｜全景跟随·少侠拧身回马枪挑落飞刀】
+【主体】<Subject 2> 居画面中前方，六枚柳叶飞刀自后方阴影疾射而来。
+【动作】<Subject 2> (S1) 听风辨位，耳廓微动；不回头，腰马合一猛然拧转半圈，手中镔铁长枪化作一道旋转银盘；枪尖在身侧一米处精准磕中前三枚飞刀，清脆金铁相交之声连发三次，火星在雨中连环爆开！少侠枪势顺势如游龙出水，枪头红缨急抖抖落水珠，借转身之势单手扣住枪尾，枪尖带风直刺前方竹丛阴影，口中喝道：
+<d>[中文] ${extractedDialogue || '现身！'}</d>
+枪尖撕裂暴风雨，将迎面一根粗壮毛竹生生拦腰扎穿！
+【镜头】${arConfig.label} 全景围绕少侠转体做 180 度弧形旋转机位，景深从飞刀火星快速掠向枪尖破竹。
+【音效】飞刀划破空气之极细啸音；枪尖磕中飞刀的三声清脆叮当交击声；毛竹爆裂破开巨响；沉稳断喝；雨水淅沥底噪；无背景音乐，无对白外杂音。
+【约束】长枪直线刚体锁死，无弯软扭曲；少侠腰腿重心符合武术发力规范；被穿透竹子裂口真实；排除多余对话与闲聊废话。
+
+【Shot 2｜4–7秒｜中景双人·刺客破竹迎面拼刀对决】
+【主体】<Subject 2> 银枪少侠右侧持枪防守，<Subject 3> 刺客破竹飞扑至左侧。
+【动作】<Subject 3> (S2) 避开枪尖破空冲击，自折断竹梢后凌空翻滚下坠，双袖短刀如寒芒交叉斩向少侠面门；少侠双臂一震，长枪中段横架向上格挡，短刀与枪杆硬撞爆出一团刺目金石火星！二人四目对视，刺客咬牙从喉咙挤出冷笑：
+<d>[中文] 纳命来！</d>
+少侠沉肩发力将长枪猛烈上挑震开双刀，身形向后稳稳滑退半步拉开两米距离，双手转枪呈攻防戒备态。
+【镜头】${arConfig.label} 中景双人水平微俯拍，定格二人兵刃相接的极高张力瞬间。
+【音效】短刀与长枪剧烈格挡之尖锐金石铮鸣；双足蹬踏湿泥摩擦声；刺客压抑短喝；无背景音乐。
+【约束】刀枪碰撞点物理清晰，四肢关节不扭曲穿模；面部冷峻表情稳定；二人身形独立不融合；无多余对白。`;
+  }
 
   if (genre === 'short_drama') {
     if (rawPrompt.includes('铁蛋') || rawPrompt.includes('机器人') || rawPrompt.includes('放牛') || rawPrompt.includes('tiedan')) {
