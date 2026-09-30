@@ -22,7 +22,7 @@ export interface DurationPartitionPlan {
   actualTotalSeconds: number;
   segmentCount: number;
   segmentUnit: '10s_only' | '15s_only' | 'hybrid';
-  genreRecommendation: 'commercial' | 'short_drama' | 'mv';
+  genreRecommendation: 'commercial' | 'short_drama' | 'wuxia_fight';
   summary: string;
   segments: SegmentPlanItem[];
   ffmpegStitchCommand: string;
@@ -58,11 +58,11 @@ export function extractDurationFromPrompt(prompt: string): number {
   if (prompt.includes('广告') || prompt.includes('宣传片')) {
     return 15;
   }
-  if (prompt.includes('mv') || prompt.includes('音乐视频')) {
-    return 30;
+  if (prompt.includes('打斗') || prompt.includes('武侠') || prompt.includes('仙法') || prompt.includes('对决')) {
+    return 15;
   }
 
-  // 默认返回 15 秒（微短剧标准单段）
+  // 默认返回 15 秒（标准单段）
   return 15;
 }
 
@@ -73,7 +73,7 @@ export function planDurationPartition(totalSeconds: number): DurationPartitionPl
   const target = Math.max(5, Math.round(totalSeconds));
 
   let segmentDurations: Array<10 | 15> = [];
-  let genre: 'commercial' | 'short_drama' | 'mv' = 'short_drama';
+  let genre: 'commercial' | 'short_drama' | 'wuxia_fight' = 'wuxia_fight';
 
   if (target <= 12) {
     // 10 秒档

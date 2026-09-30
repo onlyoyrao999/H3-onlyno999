@@ -365,16 +365,6 @@ export const STORY_ARCHETYPES: StoryArchetype[] = [
     whySeedanceFailsInH3: '1. 特写 close-up 导致 50% 概率头顶裁切；2. "no subtitles" 诱发 H3 反向敏感烧出两道乱码假字幕；3. 散文描述缺少 [subject_definitions] 导致换镜头男主变脸；4. 模型自带 BGM 导致每段接缝出现爆音断层。'
   },
   {
-    id: 'mv_cyber_rain',
-    title: '雨夜赛博：霓虹下的未寄之信',
-    genre: 'mv',
-    aspectRatio: '16:9',
-    speakerId: 'S2',
-    seedanceProse: 'A futuristic rainy cyberpunk skybridge illuminated by saturated teal and amber neon lights reflecting on wet asphalt puddles. The melancholic female artist in a shimmering holographic trench coat sings passionately by the highway railing with intense emotional expressions. The camera moves in a smooth circular tracking orbit around her as glowing hovercars speed past in the background. Ultra realistic 8k, masterpiece, singing vocals, intimate close-up framing, no watermark, no text.',
-    dialogue: '雨水冲刷掉所有的诺言，唯独留下你转身的背影。',
-    whySeedanceFailsInH3: '1. 缺少歌词时间戳对齐与 45% 发声率控制，全程张嘴会导致口型油腻崩解；2. 16:9 横屏未做黄金三分法防裁边声明；3. 特写镜头在第 3 秒向斜上方漂移导致下巴出画；4. "no watermark" 触发字符生成。'
-  },
-  {
     id: 'commercial_watch',
     title: '极速先锋：微距钛金智能腕表',
     genre: 'commercial',
@@ -699,34 +689,23 @@ Subtle ambient reverberation, crisp mechanical click of precision components.
 ${musicDirective}`;
   }
 
-  // Default MV
-  const mvSingingAction = enforceLipsStill
-    ? FORBIDDEN_WORDS_LEXICON.mouthStillPositivePhrase
-    : (extractedDialogue ? `Singing vocals: "${extractedDialogue}" with measured articulation` : 'Singing vocals: "雨水冲刷掉所有的诺言，唯独留下你转身的背影。" with measured articulation');
-
-  return `[aspect_ratio]
-${arConfig.label} (${arConfig.name}) | ComfyUI Node 61: ${arConfig.comfyValue} | T2I Res: ${arConfig.image1MpRes} | H3 Video Res: ${arConfig.video04MpRes}
-
-[subject_definitions]
-<Subject 1> is the vocal artist. Her face, expressive emotional posture, reflective modern streetwear jacket, and dark flowing hair come from <Picture 1>, and <Picture 1> also carries the rain-slicked city bridge setting.
-
-[summary]
-Under rain-soaked city lights, the artist delivers an emotionally resonant vocal performance against streaming highway light trails.
-
-[retention_analysis]
-<Subject 1> is preserved from <Picture 1>.
-
-[detailed_description]
-The visual atmosphere maintains moody teal and warm sodium amber contrast with wet asphalt reflections.
-${framingRule}
-[Shot 1] Fluid circular tracking orbit around <Subject 1> (${speakerId}). She performs with measured rhythmic emotion: ${mvSingingAction}.
-[Shot 2] Reaction tableau looking upward toward the neon sky with mouth naturally closed and still.
-
-[overall_soundscape]
-Gentle falling rain patter on metal handrails, distant city ambient hum.
-
-[non_diegetic_music]
-${musicDirective}`;
+  // Default: 影视级戏剧叙事与对白镜头
+  return `subject_definitions（主体定义）:
+<Subject 1> 是 <Picture 1> 中的场景母本：电影感质感场景，空间结构开阔，光影对比鲜明。是环境结构参考；场景物件以此为准，全程不得添加其他非指定物件。
+<Subject 2> 是 <Picture 2> 中的主角色：面容沉毅，服饰与身姿端正，眼神专注。
+<Subject 3> 是 <Picture 3> 中的对手或搭档角色。
+<Subject 4> 是 <Picture 4> 作为起始画面参考图，控制开场构图与人物站位。
+声音设定：
+<Picture 2> 是主讲人用 (${speakerId}) 标记，声线沉稳有力，并在全片保持一致
+detailed_description:
+【Shot 1｜0–4秒｜${arConfig.label} 中景·角色对峙与开场】
+【主体】<Subject 2> 居画面核心位置，<Subject 3> 侧向入镜。
+【动作】<Subject 2> (${speakerId}) 眼神锁定对方，重心下沉，声线沉稳有力地说：
+<d>[中文] ${extractedDialogue || '胜负未分，我们按规矩来。'}</d>
+说完嘴唇自然闭合，目光坚定不移。
+【镜头】${arConfig.label} 电影感水平推镜，景深聚焦于角色眼神与神态。
+【音效】环境底噪、微弱脚步摩擦声、沉稳换气呼吸声；无背景音乐，无对白外杂音。
+【约束】人物五官骨骼稳定无扭曲变形；口型与台词严格同步；光影与服饰前后一致；无任何多余闲聊废话。`;
 }
 
 /**

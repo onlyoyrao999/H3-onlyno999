@@ -133,7 +133,7 @@ export function validateGate5Prompt(shot: StoryboardShot, hasProtagonist: boolea
     });
   }
 
-  // Check 7: Negative prompt lip suppression & strict screen text suppression (MV画面不要出现文字)
+  // Check 7: Negative prompt lip suppression & strict screen text suppression (影视画面不要出现文字)
   const negLower = negPrompt.toLowerCase();
   const promptLower = prompt.toLowerCase();
   
@@ -153,7 +153,7 @@ export function validateGate5Prompt(shot: StoryboardShot, hasProtagonist: boolea
       id: '07_CHECK_NEG_LIP_AND_TEXT',
       name: '画面纯净度与负向防文字压制',
       passed: false,
-      message: '正向提示词严禁要求画面显示文字/字幕 (MV画面严禁烧录任何文字或乱码)',
+      message: '正向提示词严禁要求画面显示文字/字幕 (影视画面严禁烧录任何文字或乱码)',
       severity: 'CRITICAL'
     });
   } else if (!hasTextSuppress) {

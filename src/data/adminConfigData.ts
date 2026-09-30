@@ -29,7 +29,7 @@ export interface H3TaskItem {
   taskUuid: string;
   shotId: string;
   title: string;
-  genre: 'short_drama' | 'mv' | 'commercial';
+  genre: 'short_drama' | 'wuxia_fight' | 'commercial';
   duration: number; // in seconds
   frames: number; // 17n+5 formula (e.g. 243 for 10s, 362 for 15s)
   aspectRatio: '9:16' | '16:9' | '1:1';

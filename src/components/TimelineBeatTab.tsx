@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { DEMO_LYRICS, LyricLine } from '../data/mockPipelineData';
-import { DEMO_DRAMA_SEGMENTS } from '../data/h3PipelineData';
-import { ProductionGenre } from '../data/h3PipelineData';
+import React, { useState } from 'react';
+import { DEMO_DRAMA_SEGMENTS, ProductionGenre } from '../data/h3PipelineData';
 import {
-  Play, Pause, RotateCcw, Check, Volume2, VolumeX, ShieldCheck,
-  Music, Mic, Radio, Sparkles, Layers, Sliders, MessageSquare, Clock, ArrowRight, UserCheck
+  ShieldCheck, MessageSquare, Clock, ArrowRight, Swords, Zap, Shield, Crosshair,
+  Volume2, CheckCircle2, Film, Sparkles
 } from 'lucide-react';
 
 interface TimelineBeatTabProps {
@@ -12,117 +10,97 @@ interface TimelineBeatTabProps {
 }
 
 export const TimelineBeatTab: React.FC<TimelineBeatTabProps> = ({ genre }) => {
-  // MV Mode Audio State
-  const [lyrics, setLyrics] = useState<LyricLine[]>(DEMO_LYRICS);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0.0);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [bgmContinuityMode, setBgmContinuityMode] = useState(true);
-
   // Drama Mode Segment Selection
   const [selectedDramaSegIndex, setSelectedDramaSegIndex] = useState(1);
+  const [selectedFightBeat, setSelectedFightBeat] = useState<number>(1);
 
-  // Web Audio Context & Node Refs for MV Mode
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const masterGainRef = useRef<GainNode | null>(null);
-  const bgmOscNodesRef = useRef<OscillatorNode[]>([]);
-  const vocalOscRef = useRef<OscillatorNode | null>(null);
-
-  const stopWebAudio = () => {
-    bgmOscNodesRef.current.forEach(osc => {
-      try { osc.stop(); osc.disconnect(); } catch (_) {}
-    });
-    bgmOscNodesRef.current = [];
-
-    if (vocalOscRef.current) {
-      try { vocalOscRef.current.stop(); vocalOscRef.current.disconnect(); } catch (_) {}
-      vocalOscRef.current = null;
+  const fightBeats = [
+    {
+      id: 1,
+      range: '0.0s - 1.5s',
+      phase: '阶段一：蓄力起手与动势建立',
+      action: '少侠听风辨位，腰马合一猛然拧转半圈，手中镔铁长枪化作一道旋转银盘；脚底踏碎积水。',
+      contact: '发力锚点：右腕与腰胯发力，枪尖破风形成弧形防御面',
+      dialogue: '闭口发力，鼻腔轻微沉闷吐气声，无任何废话对白',
+      foley: '狂风撕扯竹林声、长枪撕裂空气呜咽声、踏水爆裂声',
+      antiFusion: '长枪几何刚体锁定，不弯折软化，双脚牢固抓地不悬浮'
+    },
+    {
+      id: 2,
+      range: '1.5s - 2.8s',
+      phase: '阶段二：接触碰撞与金石火花爆裂',
+      action: '枪尖在身侧一米处精准磕中三枚飞刀，清脆金铁相交连发三次，火星在暴雨中连环爆开！',
+      contact: '接触受力点：枪尖合金碰撞柳叶飞刀刃脊，爆出三团刺目金石火星',
+      dialogue: '<d>[中文] 现身！</d> (短促低喝，嘴唇仅动半秒后迅速闭合)',
+      foley: '金石剧烈相撞清脆高频尖啸 (Metallic Zing)、短促暴喝；无背景音乐',
+      antiFusion: '飞刀与枪尖受力反弹轨迹清晰，二人站位分立不融合'
+    },
+    {
+      id: 3,
+      range: '2.8s - 4.5s',
+      phase: '阶段三：破空穿透与惯性滑退阻尼',
+      action: '借转身之势单手扣住枪尾，枪尖带风直刺前方竹丛阴影，枪尖破竹炸裂，穿透毛竹！',
+      contact: '物理反馈：枪尖穿透竹竿，木质纤维向外炸裂，碎屑飞溅',
+      dialogue: '紧咬牙关，无任何对白',
+      foley: '毛竹爆裂轰响、雨水砸在枪杆红缨声、沉重落地脚步声',
+      antiFusion: '竹竿折断截面物理真实，枪杆恢复平直刚体'
+    },
+    {
+      id: 4,
+      range: '4.5s - 7.0s',
+      phase: '阶段四：变招反攻与下一动抉择定格',
+      action: '刺客自折断竹梢飞扑交叉斩落双刀，少侠长枪横架硬抗，双足在泥水向后滑退三尺定格对峙！',
+      contact: '受力阻尼：双足在泥地上犁出两条深沟，刀枪碰撞点火花四溅',
+      dialogue: '<d>[中文] 破！</d> (二人四目对视，绝无长篇废话)',
+      foley: '金属剧烈刮擦声、双足犁地泥水摩擦沉闷声；现场纯拟音',
+      antiFusion: '二人四肢骨骼稳定，面部冷酷微表情稳定无畸变'
     }
-  };
-
-  const startWebAudio = () => {
-    if (!isAudioEnabled) return;
-    try {
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-        audioCtxRef.current = new AudioCtxClass();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      stopWebAudio();
-
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.18, ctx.currentTime);
-      masterGain.connect(ctx.destination);
-      masterGainRef.current = masterGain;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(750, ctx.currentTime);
-      filter.connect(masterGain);
-
-      const frequencies = [146.83, 220.0, 261.63, 329.63];
-      const oscs: OscillatorNode[] = [];
-
-      frequencies.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        osc.type = idx === 0 ? 'triangle' : 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-        const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(idx === 0 ? 0.35 : 0.2, ctx.currentTime);
-        osc.connect(oscGain);
-        oscGain.connect(filter);
-
-        osc.start();
-        oscs.push(osc);
-      });
-      bgmOscNodesRef.current = oscs;
-    } catch (e) {
-      console.warn("Web Audio not supported or blocked by browser policy:", e);
-    }
-  };
-
-  useEffect(() => {
-    let interval: any = null;
-    if (isPlaying) {
-      startWebAudio();
-      interval = setInterval(() => {
-        setCurrentTime(prev => {
-          const maxDur = genre === 'short_drama' ? 60.33 : 32.0;
-          if (prev >= maxDur) {
-            setIsPlaying(false);
-            stopWebAudio();
-            return 0.0;
-          }
-          return prev + 0.1;
-        });
-      }, 100);
-    } else {
-      stopWebAudio();
-      if (interval) clearInterval(interval);
-    }
-    return () => {
-      stopWebAudio();
-      if (interval) clearInterval(interval);
-    };
-  }, [isPlaying, isAudioEnabled, genre]);
+  ];
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
       
       {/* Genre-Specific Top Banner */}
-      {genre === 'short_drama' ? (
+      {genre === 'wuxia_fight' ? (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-red-950/30 to-slate-900 border border-amber-500/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-semibold border border-amber-500/30">
+                Fight FX Anchor 时序节拍器
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-xs font-medium border border-red-500/30">
+                三段力学时序 + 防乱说话短喝门禁
+              </span>
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+              <Swords className="w-5 h-5 text-amber-400" />
+              <span>动作打斗戏·特效锚点分镜节拍表 (Fight FX Anchor Beat Sheet)</span>
+            </h2>
+            <p className="text-xs text-slate-400 max-w-3xl">
+              动作戏的核心在于发力、碰撞与阻尼时序。打斗高压状态下，台词严格限制为短促战吼（≤6字短喝），
+              音效彻底排除背景音乐与闲杂人声，防止模型说话失控与口型崩坏。
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 font-mono text-xs text-slate-300">
+            <div className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
+              <div className="text-slate-500 text-[10px]">单招时序</div>
+              <div className="font-bold text-amber-300 text-sm">3.0s~5.0s</div>
+            </div>
+            <div className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
+              <div className="text-slate-500 text-[10px]">防乱说话</div>
+              <div className="font-bold text-emerald-300 text-sm">≤6字短喝</div>
+            </div>
+          </div>
+        </div>
+      ) : genre === 'short_drama' ? (
         <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 border border-indigo-500/30 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-xs font-semibold border border-cyan-500/30">
                 短剧时间轴 · 15.083s / 362帧 标准分段
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
                 每段 3 句发声 + 1 镜无台词反应
               </span>
             </div>
@@ -138,72 +116,101 @@ export const TimelineBeatTab: React.FC<TimelineBeatTabProps> = ({ genre }) => {
 
           <div className="flex items-center gap-3 font-mono text-xs text-slate-300">
             <div className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
-              <div className="text-[10px] text-slate-500">成片总段数</div>
-              <div className="text-sm font-bold text-cyan-400">4 段 (1448 帧)</div>
+              <div className="text-slate-500 text-[10px]">成片总长</div>
+              <div className="font-bold text-cyan-300 text-sm">60.33s</div>
             </div>
             <div className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-center">
-              <div className="text-[10px] text-slate-500">固定说话人</div>
-              <div className="text-sm font-bold text-emerald-400">S1/S2/S3</div>
+              <div className="text-slate-500 text-[10px]">总帧数</div>
+              <div className="font-bold text-indigo-300 text-sm">1448 帧</div>
             </div>
-          </div>
-        </div>
-      ) : genre === 'commercial' ? (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-purple-950/60 to-slate-900 border border-purple-500/30 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-xs font-semibold border border-purple-500/30">
-                商业广告节拍轴 · 15.083s 黄金节奏
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-xs font-medium border border-amber-500/30">
-                Hook → 痛点 → 核心解法 → Slogan
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-400" />
-              <span>15秒商业大片节奏节拍分配表 (362 帧)</span>
-            </h2>
-            <p className="text-xs text-slate-400 max-w-3xl">
-              0-3s 极速宏观视觉钩子，3-7s 痛点共鸣与质感，7-12s 产品陀飞轮机构微距，12-15s 品牌权威画外音 Slogan。
-            </p>
           </div>
         </div>
       ) : (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/30 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-black border border-purple-500/30 shadow-xl flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-xs font-semibold border border-cyan-500/30">
-                关 1 歌词时间轴与母带对齐
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
-                全曲伴奏底轨贯穿保活
-              </span>
-            </div>
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              <Music className="w-5 h-5 text-cyan-400" />
-              <span>音乐 MV 官方歌词与时间戳毫秒对齐表 (32.0s 母带)</span>
-            </h2>
-            <p className="text-xs text-slate-400 max-w-3xl">
-              ASR 与官方歌词双向纠偏，歌词行首尾毫秒时间戳死死固化。前奏、间奏、尾奏由伴奏 100% 贯穿流淌，杜绝静音断层。
-            </p>
-          </div>
-
-          {/* Web Audio Synthesizer Control */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold shadow-lg transition-all ${
-                isPlaying ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-cyan-600 hover:bg-cyan-500 text-white'
-              }`}
-            >
-              {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-              <span>{isPlaying ? '暂停伴奏试听' : '播放伴奏与时间轴'}</span>
-            </button>
+            <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-xs font-semibold border border-purple-500/30">
+              商业广告 · 15.083s / 362 帧
+            </span>
+            <h2 className="text-xl font-bold text-white tracking-tight">商业广告高能分镜节拍表</h2>
+            <p className="text-xs text-slate-400">视觉 Hook ➔ 佩戴体验 ➔ 空间质感 ➔ 品牌 CTA Slogan 快速转换。</p>
           </div>
         </div>
       )}
 
       {/* Main Content by Genre */}
-      {genre === 'short_drama' ? (
+      {genre === 'wuxia_fight' ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {fightBeats.map((beat) => {
+              const isSelected = selectedFightBeat === beat.id;
+              return (
+                <div
+                  key={beat.id}
+                  onClick={() => setSelectedFightBeat(beat.id)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer space-y-2.5 ${
+                    isSelected
+                      ? 'bg-amber-950/30 border-amber-500/60 ring-1 ring-amber-500/40 shadow-lg'
+                      : 'bg-slate-900/60 border-slate-800 hover:bg-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-amber-400">{beat.range}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-black/40 text-amber-200 border border-amber-500/30 font-mono">
+                      招式 #{beat.id}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-white truncate">{beat.phase}</div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{beat.action}</p>
+                  <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                    <span className="text-emerald-400">物理锚点已锁定</span>
+                    <span>查看详情 ➔</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Detailed Beat Inspector */}
+          {(() => {
+            const beat = fightBeats[selectedFightBeat - 1] || fightBeats[0];
+            return (
+              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{beat.phase}</span>
+                    <span className="text-xs font-mono text-amber-400">({beat.range})</span>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-mono font-semibold">
+                    ✓ 特效锚点三段时序满足
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="text-slate-400 font-mono text-[10px]">动作与动势</div>
+                    <div className="text-slate-200 font-medium">{beat.action}</div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="text-slate-400 font-mono text-[10px]">空间接触面 (Contact Anchor)</div>
+                    <div className="text-amber-300 font-medium">{beat.contact}</div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="text-slate-400 font-mono text-[10px]">防乱说话对白约束</div>
+                    <div className="text-emerald-300 font-medium">{beat.dialogue}</div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                    <div className="text-slate-400 font-mono text-[10px]">现场物理拟音 (Foley)</div>
+                    <div className="text-purple-300 font-medium">{beat.foley}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : genre === 'short_drama' ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {DEMO_DRAMA_SEGMENTS.map((seg) => {
@@ -278,15 +285,15 @@ export const TimelineBeatTab: React.FC<TimelineBeatTabProps> = ({ genre }) => {
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1">
-                    <div className="text-[10px] font-mono text-slate-400">[Shot 3] 8.2s - 12.0s (空间群像)</div>
-                    <div className="text-xs font-bold text-slate-200">横向推轨 (两侧餐桌与宾客)</div>
+                    <div className="text-[10px] font-mono text-slate-400">[Shot 3] 8.2s - 11.5s (对手回敬)</div>
+                    <div className="text-xs font-bold text-slate-200">中景侧面单人 (防穿模)</div>
                     <p className="text-[11px] text-slate-400 mt-1">
-                      宾客窃窃私语，低音提琴 drone 铺底。
+                      反派角色冷声接话，声音低沉发闷。
                     </p>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/20 space-y-1">
-                    <div className="text-[10px] font-mono text-emerald-400">[Shot 4] 12.0s - 15.08s (淡接接缝)</div>
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1">
+                    <div className="text-[10px] font-mono text-slate-400">[Shot 4] 11.5s - 15.083s (收束定格)</div>
                     <div className="text-xs font-bold text-emerald-300">定格全景 (相机绝不靠近)</div>
                     <p className="text-[11px] text-slate-400 mt-1">
                       末段静默 0.35s，预留 ffmpeg afade 淡接空间。
@@ -297,7 +304,7 @@ export const TimelineBeatTab: React.FC<TimelineBeatTabProps> = ({ genre }) => {
             );
           })()}
         </div>
-      ) : genre === 'commercial' ? (
+      ) : (
         <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <span className="text-sm font-bold text-white">CHRONOS PRESTIGE · 曜石陀飞轮 15 秒极速节拍</span>
@@ -328,61 +335,6 @@ export const TimelineBeatTab: React.FC<TimelineBeatTabProps> = ({ genre }) => {
               <h4 className="text-xs font-bold text-purple-200">手腕翻转面向镜头 + Slogan</h4>
               <p className="text-[11px] text-slate-400">&lt;d&gt;[Chinese] 恒久流转，分秒皆为传奇。&lt;/d&gt;</p>
             </div>
-          </div>
-        </div>
-      ) : (
-        /* MV Mode: Traditional Lyric Lines Timeline */
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
-              <span>全曲进度: {currentTime.toFixed(1)}s / 32.0s</span>
-              <span>{isPlaying ? '伴奏流淌中 (D minor pad)' : '就绪'}</span>
-            </div>
-            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-100"
-                style={{ width: `${(currentTime / 32.0) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {lyrics.map((line) => {
-              const isCurrent = currentTime >= line.start && currentTime < line.end;
-              return (
-                <div
-                  key={line.id}
-                  className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-4 ${
-                    isCurrent
-                      ? 'bg-cyan-500/10 border-cyan-500/50 shadow-md'
-                      : 'bg-slate-900/60 border-slate-800/80 hover:bg-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-slate-500 w-16">
-                      {line.start.toFixed(1)}s - {line.end.toFixed(1)}s
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-semibold ${
-                      line.isInstrumental
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                    }`}>
-                      {line.type.toUpperCase()}
-                    </span>
-                    <span className={`text-xs ${isCurrent ? 'font-bold text-white' : 'text-slate-300'}`}>
-                      {line.text}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                    <span>置信度: {(line.confidence * 100).toFixed(0)}%</span>
-                    {line.isInstrumental && (
-                      <span className="text-purple-400">(伴奏铺底 · 强制闭嘴)</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 /**
  * MiniMax H3 Multi-Genre Video Pipeline Data & Specification
  * Unifies:
- * - 🎵 Music Video (MV)
+ * - ⚔️ 武侠仙法·动作打斗 (Fight FX Anchor)
  * - 🎭 Short Drama (竖版短剧 15s×4段/8段)
  * - 🎬 Commercials (商业广告)
  * Grounded in:
@@ -10,7 +10,7 @@
  * - Anti-trap Consistency Locks (Anti-head-cutoff, anti-hallway, anti-subtitle trap)
  */
 
-export type ProductionGenre = 'mv' | 'short_drama' | 'commercial' | 'wuxia_fight';
+export type ProductionGenre = 'wuxia_fight' | 'short_drama' | 'commercial';
 
 export type AspectRatioType = '16:9' | '9:16' | '21:9' | '1:1' | '4:3' | '3:4';
 
@@ -29,12 +29,12 @@ export const ASPECT_RATIO_CONFIGS: Record<AspectRatioType, AspectRatioConfig> = 
   '16:9': {
     id: '16:9',
     label: '16:9',
-    name: '16:9 横屏电影/广告/MV',
+    name: '16:9 横屏电影/商业大片',
     comfyValue: '16:9 (Widescreen)',
     image1MpRes: '1376×768',
     video04MpRes: '864×480',
     orientation: 'horizontal',
-    description: '标准宽屏 · 横屏短剧 · 商业大片 · 音乐 MV · YouTube · B站'
+    description: '标准宽屏 · 横屏短剧 · 商业大片 · 影视精品 · YouTube · B站'
   },
   '9:16': {
     id: '9:16',
@@ -101,6 +101,17 @@ export interface GenreMeta {
 }
 
 export const PRODUCTION_GENRES: Record<ProductionGenre, GenreMeta> = {
+  wuxia_fight: {
+    id: 'wuxia_fight',
+    name: '⚔️ 武侠仙法·动作打斗 (Fight FX Anchor)',
+    tagline: '特效力学锚点 · 三段时序防穿模 · 招式破空与金石拟音 · 严禁乱说话',
+    badge: 'Fight FX Anchor 官方固化 Skill',
+    description: '专为武侠拼刀、仙法神通对轰、近身格斗定制。将动作拆解为【发力蓄力 ➔ 碰撞受力 ➔ 惯性阻尼与收束】，严格约束四肢不扭曲、武器刚体不软化、台词仅限极短战吼。',
+    defaultDuration: 15.083,
+    segmentCount: 4,
+    frameFormula: '17n+5 (15s = 362 帧 / 单动作 3~5s 连贯接力)',
+    keyFeature: '特效空间锚点 + 纯净物理拟音 (Foley) + 防乱说话短喝限制'
+  },
   short_drama: {
     id: 'short_drama',
     name: '🎭 竖版短剧 (Short Drama)',
@@ -112,17 +123,6 @@ export const PRODUCTION_GENRES: Record<ProductionGenre, GenreMeta> = {
     frameFormula: '17n+5 (15s = 362 帧, 4段 = 60.33s, 8段 = 120.67s)',
     keyFeature: '防裁头宽景 + 宾客同源锁 + 0.35s 音频淡接拼片'
   },
-  mv: {
-    id: 'mv',
-    name: '🎵 音乐 MV (Music Video)',
-    tagline: '时间轴强制对齐 · 45% 节制口型率 · 伴奏底轨贯穿保活',
-    badge: '12步8关 SOP',
-    description: '一首歌 + 一张图，从歌词时间戳到双轨合成。只有特写中景开口唱，间奏/空镜强制闭嘴，消除模型累积漂移。',
-    defaultDuration: 32.0,
-    segmentCount: 7,
-    frameFormula: '自研帧网格时长向上贴合 (24fps PTS cut)',
-    keyFeature: '音频包络对齐三验 + 母带原声双轨重贴'
-  },
   commercial: {
     id: 'commercial',
     name: '🎬 商业广告 (Commercials / Ads)',
@@ -133,17 +133,6 @@ export const PRODUCTION_GENRES: Record<ProductionGenre, GenreMeta> = {
     segmentCount: 4,
     frameFormula: '17n+5 (15s = 362 帧)',
     keyFeature: '电影级光影反差 + 0 乱码字 + 动作动势匹配'
-  },
-  wuxia_fight: {
-    id: 'wuxia_fight',
-    name: '⚔️ 武侠仙法·动作打斗 (Fight FX Anchor)',
-    tagline: '特效力学锚点 · 三段时序防穿模 · 招式破空与金石拟音 · 严禁乱说话',
-    badge: 'Fight FX Anchor 官方固化 Skill',
-    description: '专为武侠拼刀、仙法神通对轰、近身格斗定制。将动作拆解为【发力蓄力 ➔ 碰撞受力 ➔ 惯性阻尼与收束】，严格约束四肢不扭曲、武器刚体不软化、台词仅限极短战吼。',
-    defaultDuration: 15.083,
-    segmentCount: 4,
-    frameFormula: '17n+5 (15s = 362 帧 / 单动作 3~5s 连贯接力)',
-    keyFeature: '特效空间锚点 + 纯净物理拟音 (Foley) + 防乱说话短喝限制'
   }
 };
 
@@ -269,6 +258,335 @@ export const DRAMA_ASSET_CARDS: AssetCard[] = [
 /**
  * Short Drama Segment Demo (15s = 362 frames each, 4 segments = 60.33s)
  */
+export interface NineGridSceneCell {
+  cellIndex: number; // 1 to 9
+  name: string;
+  cameraAngle: string;
+  shotType: string;
+  spatialRole: string;
+  focalElements: string[];
+  previewUrl: string;
+}
+
+export interface NineGridSceneSheet {
+  id: string;
+  title: string;
+  sceneDescription: string;
+  architecturalStyle: string;
+  lightingTone: string;
+  cells: NineGridSceneCell[];
+  gridCompositeUrl: string;
+  createdAt: string;
+}
+
+export interface PropAngleView {
+  angleName: string; // e.g. "正面全貌", "45度侧角", "刃口/材质微距", "角色握持战斗态"
+  description: string;
+  previewUrl: string;
+}
+
+export interface PropMultiGridCard {
+  id: string;
+  name: string;
+  category: 'weapon' | 'dramatic_prop' | 'treasure' | 'everyday_item';
+  description: string;
+  material: string;
+  associatedSubject: string; // e.g. "<Subject 2> 丈二镔铁长枪"
+  angleViews: PropAngleView[];
+  compositeSheetUrl: string;
+  isInAssetLibrary: boolean;
+  createdAt: string;
+}
+
+export const INITIAL_NINE_GRID_SCENES: NineGridSceneSheet[] = [
+  {
+    id: 'nine_grid_bamboo_forest',
+    title: '暴雨幽深毛竹林 · 九宫格空间大图 (Wuxia Combat Ground)',
+    sceneDescription: '暴风雨撕扯倾斜的密集苍翠毛竹林，满地湿滑竹叶与反光水泊，远处烟雨迷蒙，闪电偶掠过树梢',
+    architecturalStyle: '天然深山幽林 · 湿滑青苔石径',
+    lightingTone: '暗青冷色调暴雨天光 + 偶发闪电高光闪烁',
+    createdAt: '2026-09-30 16:30',
+    gridCompositeUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80',
+    cells: [
+      {
+        cellIndex: 1,
+        name: '全景建立视角 (Wide Establishing)',
+        cameraAngle: '平视极远景',
+        shotType: 'Extreme Wide Shot',
+        spatialRole: '交代整片幽深竹林空间体量与狂风雨势',
+        focalElements: ['倾斜毛竹林顶', '雨幕空隙', '湿滑青石板地表'],
+        previewUrl: 'https://images.unsplash.com/photo-1511497584788-87676104235f?w=300&q=80'
+      },
+      {
+        cellIndex: 2,
+        name: '核心对决空地 (Hero Arena)',
+        cameraAngle: '水平中远景',
+        shotType: 'Wide Arena Shot',
+        spatialRole: '二人交手主场地，积水反光最清晰区域',
+        focalElements: ['圆形空旷泥地', '断裂竹梢', '浅水倒影'],
+        previewUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&q=80'
+      },
+      {
+        cellIndex: 3,
+        name: '45° 侧身透视 (Lateral Flank)',
+        cameraAngle: '侧向 45 度中景',
+        shotType: 'Medium Wide Shot',
+        spatialRole: '展示两人拉开距离与兵刃回马枪走势',
+        focalElements: ['斜向排列竹身', '雨丝斜线轨迹', '泥泞落叶带'],
+        previewUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=300&q=80'
+      },
+      {
+        cellIndex: 4,
+        name: '俯瞰鸟瞰空间图 (Overhead Map)',
+        cameraAngle: '垂直下俯 90 度',
+        shotType: 'Bird-Eye Floorplan',
+        spatialRole: '清晰定位二人站位间距 (相距四步) 与犁地划痕走向',
+        focalElements: ['同心圆八卦水纹', '双足滑退犁地深沟', '飞刀落地散落点'],
+        previewUrl: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=300&q=80'
+      },
+      {
+        cellIndex: 5,
+        name: '破竹受击锚点 (Impact Anchor)',
+        cameraAngle: '中近景仰拍',
+        shotType: 'Close-Up Impact Focus',
+        spatialRole: '枪尖拦腰扎穿毛竹点，炸裂木质纤维向四周飞溅',
+        focalElements: ['爆裂竹管剖面', '水花迸溅微距', '枪尖镔铁反光'],
+        previewUrl: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=300&q=80'
+      },
+      {
+        cellIndex: 6,
+        name: '刺客暗处隐匿机位 (Reverse Angle)',
+        cameraAngle: '自竹林高枝向下俯拍',
+        shotType: 'Reverse High-Angle',
+        spatialRole: '展现刺客自树冠俯冲飞扑的起手空间',
+        focalElements: ['茂密竹叶前景虚化', '下方地面银枪少侠微小身影', '雨滴砸落叶面'],
+        previewUrl: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=300&q=80'
+      },
+      {
+        cellIndex: 7,
+        name: '雷电天光投射面 (Lightning Rim)',
+        cameraAngle: '仰角侧光机位',
+        shotType: 'Dramatic Low Angle',
+        spatialRole: '闪电瞬间在雨丝与枪尖轮廓打出的高对比银白轮廓光',
+        focalElements: ['暴雨天际缝隙', '高对比竹节轮廓', '水雾蒸腾感'],
+        previewUrl: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=300&q=80'
+      },
+      {
+        cellIndex: 8,
+        name: '阴暗泥泞掩体角 (Shadow Concealment)',
+        cameraAngle: '极低水平贴地机位',
+        shotType: 'Ground Level Worm Eye',
+        spatialRole: '双足蹬地借力与战靴踏水特写空间',
+        focalElements: ['浸泡水中的深色腐叶', '溅起的浑浊泥浆水珠', '坚固岩石地基'],
+        previewUrl: 'https://images.unsplash.com/photo-1516214104703-d870798883c5?w=300&q=80'
+      },
+      {
+        cellIndex: 9,
+        name: '远山烟雨迷蒙延伸 (Atmospheric Depth)',
+        cameraAngle: '长焦远眺穿透机位',
+        shotType: 'Telephoto Depth Vista',
+        spatialRole: '镜头纵深向远方延伸，锁死整片竹林并非孤立影棚',
+        focalElements: ['层叠淡青色远山', '山谷升腾的白雾', '狂风卷起的高空竹絮'],
+        previewUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300&q=80'
+      }
+    ]
+  },
+  {
+    id: 'nine_grid_retro_dining',
+    title: '80年代家用老客厅与餐桌 · 九宫格空间大图 (Short Drama Living Room)',
+    sceneDescription: '夜晚家用餐厅，斑驳深色木桌居中，一盏暖黄吊灯，素色肌理墙挂泛黄日历，老式暖水壶与带油星的饭菜盘',
+    architecturalStyle: '80年代红砖筒子楼 · 紧凑温馨民宅',
+    lightingTone: '暖黄吊灯高对比下顶光 + 窗外深暗夜色',
+    createdAt: '2026-09-30 16:35',
+    gridCompositeUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80',
+    cells: [
+      {
+        cellIndex: 1,
+        name: '全景建立机位 (Wide Living Room)',
+        cameraAngle: '房间对角线平视',
+        shotType: 'Wide Establishing Shot',
+        spatialRole: '交代整间餐厅结构、木桌居中、左侧房门、右侧深色窗帘',
+        focalElements: ['木质餐桌', '顶上单盏暖黄吊灯', '木地板纹理'],
+        previewUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&q=80'
+      },
+      {
+        cellIndex: 2,
+        name: '主桌核心对话位 (Central Dining Table)',
+        cameraAngle: '餐桌侧面正平视',
+        shotType: 'Medium Two-Shot Anchor',
+        spatialRole: '男女主角隔桌对坐核心表演区域',
+        focalElements: ['几盘未动的家常菜', '玻璃烟灰缸', '木筷两双'],
+        previewUrl: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef7?w=300&q=80'
+      },
+      {
+        cellIndex: 3,
+        name: '女主角正侧景深视角 (Female Lead Angle)',
+        cameraAngle: '过肩微俯视',
+        shotType: 'Over-the-Shoulder Medium',
+        spatialRole: '女主开口要校车费主视角，背景虚化木质餐椅',
+        focalElements: ['敲击桌面的右手食指', '清秀微疲面容', '灰色睡衣领口'],
+        previewUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80'
+      },
+      {
+        cellIndex: 4,
+        name: '男主角阴影反打位 (Male Lead Shadow)',
+        cameraAngle: '水平中近景',
+        shotType: 'Shadowed Reverse Angle',
+        spatialRole: '男主在吊灯阴影中缩着肩膀搓烟纸',
+        focalElements: ['下颌胡茬', '手指间未点燃的香烟', '眼窝深暗阴影'],
+        previewUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80'
+      },
+      {
+        cellIndex: 5,
+        name: '俯瞰平面透视 (Overhead Layout)',
+        cameraAngle: '垂直吊顶俯视 90 度',
+        shotType: 'Bird-Eye Table Geometry',
+        spatialRole: '锁定桌面所有物品坐标（烟灰缸右上、汤碗正中），严防跨段漂移',
+        focalElements: ['圆形玻璃烟灰缸', '木桌木纹接缝', '两把木椅相对'],
+        previewUrl: 'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=300&q=80'
+      },
+      {
+        cellIndex: 6,
+        name: '后窗夜色与窗帘 (Window Nocturne)',
+        cameraAngle: '由内向外逆光视角',
+        shotType: 'Atmospheric Window Shot',
+        spatialRole: '深色厚布窗帘半掩，窗外漆黑夜景映衬压抑室内氛围',
+        focalElements: ['素色肌理墙面', '泛黄挂历', '暖水壶反光'],
+        previewUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&q=80'
+      },
+      {
+        cellIndex: 7,
+        name: '房门入口景深带 (Entrance Hallway)',
+        cameraAngle: '玄关斜视',
+        shotType: 'Hallway Depth Frame',
+        spatialRole: '交代通往玄关与卧室的走廊门框景深',
+        focalElements: ['旧木门框', '拖鞋在门边', '暗色地垫'],
+        previewUrl: 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=300&q=80'
+      },
+      {
+        cellIndex: 8,
+        name: '五斗柜与冰箱死角 (Corner Storage)',
+        cameraAngle: '微距广角',
+        shotType: 'Ambient Storage Detail',
+        spatialRole: '绿色老式冰箱轻微嗡鸣底噪发生源',
+        focalElements: ['老冰箱泛黄门把手', '木质五斗橱', '收纳塑料篮'],
+        previewUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300&q=80'
+      },
+      {
+        cellIndex: 9,
+        name: '暖黄吊灯光斑投射 (Hanging Lamp Cone)',
+        cameraAngle: '由下仰视吊灯灯罩',
+        shotType: 'Low Angle Lighting Anchor',
+        spatialRole: '全室唯一硬光源，锁定全剧光源方向与阴影对比度',
+        focalElements: ['白色搪瓷灯罩', '电线微卷', '暖色白炽灯丝光晕'],
+        previewUrl: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=300&q=80'
+      }
+    ]
+  }
+];
+
+export const INITIAL_PROP_MULTI_GRIDS: PropMultiGridCard[] = [
+  {
+    id: 'prop_wuxia_spear',
+    name: '丈二镔铁点钢枪 (Wuxia Iron Spear)',
+    category: 'weapon',
+    material: '冷锻镔铁枪身 · 烈火红缨 · 锋锐亮银枪尖',
+    description: '少侠贴身兵刃，枪长丈二（约3.6米），通体黑沉压手，枪尖开双刃血槽，红缨吸水后如重锤甩珠',
+    associatedSubject: '<Subject 2> 银枪少侠随身兵刃',
+    compositeSheetUrl: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=600&auto=format&fit=crop&q=80',
+    isInAssetLibrary: true,
+    createdAt: '2026-09-30 16:40',
+    angleViews: [
+      {
+        angleName: '正面全貌立绘',
+        description: '白底居中，长枪笔直竖立，展示丈二全长与黑白红三色配比',
+        previewUrl: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=300&q=80'
+      },
+      {
+        angleName: '45° 侧倾动势角',
+        description: '枪尖斜指地面，长枪刚体笔直无弯曲软化，红缨微散',
+        previewUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=300&q=80'
+      },
+      {
+        angleName: '枪尖与红缨微距特写',
+        description: '极近景微距，展现枪头点钢冷光淬火纹理与雨水挂珠',
+        previewUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300&q=80'
+      },
+      {
+        angleName: '少侠端枪端把战斗握持态',
+        description: '右手锁枪尾、左手托枪腰，呈马步稳固端枪备战态',
+        previewUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80'
+      }
+    ]
+  },
+  {
+    id: 'prop_assassin_flying_daggers',
+    name: '暗影柳叶透骨飞刀 (Assassin Throwing Knives)',
+    category: 'weapon',
+    material: '乌金玄铁 · 淬毒幽蓝刃脊 · 无柄配重环',
+    description: '刺客暗器，长六寸二分，两头尖中段阔如柳叶，薄如蝉翼，破空声极细尖锐',
+    associatedSubject: '<Subject 3> 暗影刺客十指飞刀',
+    compositeSheetUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
+    isInAssetLibrary: true,
+    createdAt: '2026-09-30 16:42',
+    angleViews: [
+      {
+        angleName: '六柄飞刀并排正面',
+        description: '六枚飞刀呈扇形整齐平铺，展示一致几何外形与配重环',
+        previewUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=300&q=80'
+      },
+      {
+        angleName: '刺客指缝夹刀出手法',
+        description: '双手十指各夹三柄飞刀，指节发白准备甩出瞬间',
+        previewUrl: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=300&q=80'
+      },
+      {
+        angleName: '刀尖淬毒冷光微距',
+        description: '极窄景深，刀刃边缘泛幽蓝淬火毒芒',
+        previewUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&q=80'
+      },
+      {
+        angleName: '被长枪磕中弹飞动态',
+        description: '刀身在空中翻滚旋转，刃脊爆开三颗金石火花瞬间',
+        previewUrl: 'https://images.unsplash.com/photo-1516214104703-d870798883c5?w=300&q=80'
+      }
+    ]
+  },
+  {
+    id: 'prop_retro_ashtray_and_mug',
+    name: '80年代家用圆形玻璃烟灰缸与搪瓷茶杯 (Retro Ashtray & Mug)',
+    category: 'dramatic_prop',
+    material: '厚底透明浮雕玻璃 · 白色掉漆搪瓷铁皮',
+    description: '餐桌核心道具：玻璃烟灰缸中有两枚带熄灭青烟的烟头；搪瓷茶杯杯口有两处微小黑底掉瓷疤痕',
+    associatedSubject: '<Subject 1> 餐桌重要互动陈设',
+    compositeSheetUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80',
+    isInAssetLibrary: true,
+    createdAt: '2026-09-30 16:45',
+    angleViews: [
+      {
+        angleName: '桌面俯视物品全景',
+        description: '白底展示烟灰缸与搪瓷杯相对位置，固定于餐桌右上角',
+        previewUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300&q=80'
+      },
+      {
+        angleName: '餐桌侧光平视角度',
+        description: '暖黄吊灯打在厚玻璃折射光斑，茶杯冒出丝缕微弱热气',
+        previewUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=300&q=80'
+      },
+      {
+        angleName: '手指搓烟微距互动态',
+        description: '男主粗糙指腹搓揉香烟纸，细微烟丝剥落特写',
+        previewUrl: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=300&q=80'
+      },
+      {
+        angleName: '指节敲桌震动反应态',
+        description: '女主食指关节敲击桌面时，玻璃烟灰缸轻微共振',
+        previewUrl: 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=300&q=80'
+      }
+    ]
+  }
+];
+
 export interface DramaSegmentShot {
   id: string;
   segmentIndex: number;

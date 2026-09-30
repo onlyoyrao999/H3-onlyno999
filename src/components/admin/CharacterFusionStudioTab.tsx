@@ -283,17 +283,17 @@ export const CharacterFusionStudioTab: React.FC = () => {
 
           <button
             onClick={() => {
-              setActiveGenre('mv');
-              setSelectedScene(COMPREHENSIVE_SCENE_PRESETS[6]); // cyberpunk street
+              setActiveGenre('wuxia_fight');
+              setSelectedScene(COMPREHENSIVE_SCENE_PRESETS[6]); // wuxia bamboo
             }}
             className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-              activeGenre === 'mv'
-                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+              activeGenre === 'wuxia_fight'
+                ? 'bg-gradient-to-r from-amber-600 to-red-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <Music className="w-4 h-4 text-cyan-300" />
-            <span>音乐 MV 与舞台 (Music Video)</span>
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>⚔️ 武侠仙法·动作决战 (Fight FX)</span>
           </button>
         </div>
 

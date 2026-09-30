@@ -93,7 +93,7 @@ export interface MasterBgmContinuousTrack {
   key: string;
   bpm: number;
   durationSeconds: number; // 60.33s for 4-segment drama, 120.67s for 8-segment
-  genreTarget: 'short_drama' | 'mv' | 'commercial';
+  genreTarget: 'wuxia_fight' | 'short_drama' | 'commercial';
   description: string;
   stemTracks: {
     name: string;
@@ -130,20 +130,20 @@ export const MASTER_BGM_TRACKS: MasterBgmContinuousTrack[] = [
     ]
   },
   {
-    id: 'bgm_mv_rainy_neon',
-    name: '雨夜街灯 · 电子氛围慢摇母带 (Continuous Vocal & Instrument)',
-    key: 'C 小调 (C Minor)',
-    bpm: 85,
-    durationSeconds: 32.0,
-    genreTarget: 'mv',
-    description: '采用双轨分离架构：ComfyUI 仅注入干声驱动口型；后期强制压入无损全曲母带，前奏与间奏 100% 伴奏贯穿。',
+    id: 'bgm_wuxia_bamboo_fight',
+    name: '竹林对决 · 古筝杀伐与战鼓低音 (Master Wuxia Score)',
+    key: '羽调式 (E Minor)',
+    bpm: 108,
+    durationSeconds: 60.33,
+    genreTarget: 'wuxia_fight',
+    description: '武侠仙法打斗外挂底轨。将环境配乐控制在安全电平，保留最高纯度的金石交鸣、风爆拟音与短促战吼。',
     stemTracks: [
-      { name: 'Analog Synth Pad (复古合成器铺底)', levelDbfs: -16.0, description: '全曲温暖氛围基石' },
-      { name: 'Electric Guitar Muted Plucks (吉他轻扫)', levelDbfs: -20.0, description: '节奏点缀' },
-      { name: 'Electronic Kick & Snare (电子鼓点)', levelDbfs: -14.0, description: '节拍基准' }
+      { name: 'War Drum Sub-Bass (战鼓低频心跳)', levelDbfs: -20.0, description: '招式碰撞与受力滑退时重音契合' },
+      { name: 'Guzheng Tremolo (古筝轮指颤音)', levelDbfs: -24.0, description: '刀光剑影高速穿梭之凛冽杀意' },
+      { name: 'Wind & Rain Foley Pad (狂风雨幕拟音底轨)', levelDbfs: -18.0, description: '大自然现场风噪与水花喷溅真实感' }
     ],
     afadeSeamPoints: []
-  }
+  },
 ];
 
 export interface RoomAcousticPreset {
@@ -179,5 +179,60 @@ export const ROOM_ACOUSTIC_PRESETS: RoomAcousticPreset[] = [
     earlyReflectionMs: 12,
     environmentDescription: '极度纯净的人声近场拾音，低底噪，适合商业广告画外音 (Voice-Over)。',
     promptDirective: 'Clean studio isolation, zero room echo, crisp proximity effect on spoken dialogue with rich vocal warmth.'
+  }
+];
+
+export interface ExtractedDryVocalAsset {
+  id: string;
+  sourceSegmentId: string; // e.g. "P01"
+  sourceVideoTitle: string;
+  speakerId: 'S1' | 'S2' | 'S3';
+  speakerName: string;
+  dialogueSnippet: string;
+  extractionTime: string;
+  snrDb: number;
+  formants: number[];
+  pitchHz: number;
+  durationSeconds: number;
+  audioHash: string;
+  dryVocalWavUrl: string;
+  isMasterForChaining: boolean;
+  chainedSegments: string[];
+}
+
+export const INITIAL_EXTRACTED_DRY_VOCALS: ExtractedDryVocalAsset[] = [
+  {
+    id: 'dry_vocal_p01_s1',
+    sourceSegmentId: 'P01',
+    sourceVideoTitle: 'P01｜老房子开场与初次对峙 (0~362帧)',
+    speakerId: 'S1',
+    speakerName: 'S1 顾沉 (男主成熟磁性干声)',
+    dialogueSnippet: '见她如见我。谁敢动她分毫，就是跟我顾沉过不去。',
+    extractionTime: '2026-09-30 16:50',
+    snrDb: 32.8,
+    formants: [480, 1420, 2650],
+    pitchHz: 110,
+    durationSeconds: 4.8,
+    audioHash: 'vocal_sha256_s1_p01_master_7b29a1',
+    dryVocalWavUrl: 'https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3',
+    isMasterForChaining: true,
+    chainedSegments: ['P02 (已自动继承)', 'P03 (已自动继承)', 'P04 (已自动继承)', 'P05~P99 (无限跨段调取)']
+  },
+  {
+    id: 'dry_vocal_p01_s2_wuxia',
+    sourceSegmentId: 'P01',
+    sourceVideoTitle: 'P01｜暴雨竹林回马枪初交手 (0~362帧)',
+    speakerId: 'S1',
+    speakerName: 'S1 银枪少侠 (短喝战吼纯净干声)',
+    dialogueSnippet: '<d>[中文] 现身！</d>',
+    extractionTime: '2026-09-30 16:52',
+    snrDb: 34.5,
+    formants: [580, 1680, 2920],
+    pitchHz: 135,
+    durationSeconds: 1.2,
+    audioHash: 'vocal_sha256_wuxia_s1_shout_9e41fc',
+    dryVocalWavUrl: 'https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3',
+    isMasterForChaining: true,
+    chainedSegments: ['P02 (拼刀对决)', 'P03 (破竹贯穿)', 'P04 (终极定格)', '第2集~第100集 (无限调取)']
   }
 ];

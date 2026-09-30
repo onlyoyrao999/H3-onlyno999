@@ -32,7 +32,7 @@ interface H3PromptLabTabProps {
 
 export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch }) => {
   // Step & Mode State
-  const [activeStep, setActiveStep] = useState<'step1_seedance' | 'step2_h3_ref2va' | 'step3_mv_negative'>('step1_seedance');
+  const [activeStep, setActiveStep] = useState<'step1_seedance' | 'step2_h3_ref2va' | 'step3_negative_shield'>('step1_seedance');
   const [aspectRatio, setAspectRatio] = useState<AspectRatioType>('16:9');
   const [targetGenre, setTargetGenre] = useState<ProductionGenre>('wuxia_fight');
   const [selectedArchetype, setSelectedArchetype] = useState<StoryArchetype>(STORY_ARCHETYPES[0]);
@@ -64,7 +64,7 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
     return validateH3Prompt(initialPrompt);
   });
 
-  // Suppression Switches (User Request: 静止出现, 背景音乐, 字幕 · 参考 MV 中的禁止提示词)
+  // Suppression Switches (User Request: 静止出现, 背景音乐, 字幕 · 纯净对白禁止提示词)
   const [suppressBgm, setSuppressBgm] = useState<boolean>(true); // 默认静止/禁用模型自带 BGM
   const [suppressScreenText, setSuppressScreenText] = useState<boolean>(true); // 默认禁止出现字幕与文字
   const [enforceLipsStill, setEnforceLipsStill] = useState<boolean>(false); // 强制嘴唇绝对静止闭合
@@ -404,15 +404,15 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
         </button>
 
         <button
-          onClick={() => setActiveStep('step3_mv_negative')}
+          onClick={() => setActiveStep('step3_negative_shield')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-            activeStep === 'step3_mv_negative'
+            activeStep === 'step3_negative_shield'
               ? 'bg-red-500/20 text-red-300 border-red-500/50 shadow-sm'
               : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
           }`}
         >
           <span className="w-5 h-5 rounded-full bg-red-500/30 text-red-300 flex items-center justify-center text-[10px] font-mono">3</span>
-          <span>阶段三：MV 禁令护盾 (静止/背景音乐/字幕负向)</span>
+          <span>阶段三：H3 负向护盾 (静止/防乱说话/背景音乐/纯净度)</span>
         </button>
       </div>
 
@@ -440,7 +440,6 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
             {[
               { id: 'wuxia_fight' as ProductionGenre, label: '⚔️ 武侠仙法·动作打斗 (Fight FX Anchor)', badge: '官方固化 Skill' },
               { id: 'short_drama' as ProductionGenre, label: '🎭 竖版短剧 (Short Drama)', badge: '15s×4段' },
-              { id: 'mv' as ProductionGenre, label: '🎵 音乐 MV (Music Video)', badge: '45%发声率' },
               { id: 'commercial' as ProductionGenre, label: '🎬 商业广告 (Commercials)', badge: '微距质感' }
             ].map(m => {
               const isActive = targetGenre === m.id;
@@ -854,17 +853,17 @@ export const H3PromptLabTab: React.FC<H3PromptLabTabProps> = ({ onJumpToDispatch
         </div>
       )}
 
-      {/* STEP 3: MV Negative Constraints & Suppression Shield */}
-      {activeStep === 'step3_mv_negative' && (
+      {/* STEP 3: H3 Negative Constraints & Suppression Shield */}
+      {activeStep === 'step3_negative_shield' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Ban className="w-5 h-5 text-red-400" />
-                <span>阶段三：MV 负向禁令护盾 (静止出现 · 背景音乐 · 字幕 · 负向提示词词库)</span>
+                <span>阶段三：H3 负向禁令护盾 (静止出现 · 背景音乐 · 字幕 · 负向提示词词库)</span>
               </h2>
               <p className="text-xs text-slate-400">
-                严格继承音乐 MV 十二步八道关中铁律 C 与负向词库：杜绝模型乱加自带 BGM 导致拼片断层、杜绝画面乱码字幕、杜绝无声镜头乱动嘴。
+                严格锁定负向词库：杜绝模型乱加自带 BGM 导致拼片断层、杜绝画面乱码伪字幕、杜绝无声镜头乱动嘴、杜绝打斗戏乱说话。
               </p>
             </div>
           </div>

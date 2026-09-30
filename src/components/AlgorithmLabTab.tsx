@@ -45,7 +45,7 @@ export const AlgorithmLabTab: React.FC = () => {
         </div>
         <h2 className="text-xl font-extrabold text-white">自研专有数学模型与像素审计实验室</h2>
         <p className="text-xs text-slate-300 max-w-4xl leading-relaxed">
-          涵盖传统 MV 的**「时长向上贴合」**与**「音频包络局部搜索对齐三验」**，
+          涵盖全剧分镜的**「时长向上贴合」**与**「音频包络局部搜索对齐三验」**，
           以及 MiniMax H3 竖版短剧的**「17n+5 帧数精确计算」**与**「无视觉像素级审计 (imgcheck / personcheck / subprobe)」**。
         </p>
       </div>

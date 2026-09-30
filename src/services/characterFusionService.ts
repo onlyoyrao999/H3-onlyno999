@@ -17,7 +17,7 @@ import {
   SlicedThreeViews
 } from '../utils/threeViewMattingEngine';
 
-export type FusionGenre = 'commercial' | 'short_drama' | 'mv';
+export type FusionGenre = 'commercial' | 'short_drama' | 'wuxia_fight';
 export type ShotScaleType = 'ECU' | 'CU' | 'MCU' | 'MS' | 'FS';
 
 export interface CharacterIdentityAnchor {
@@ -39,7 +39,7 @@ export interface FusionScenePreset {
   id: string;
   name: string;
   genre: FusionGenre;
-  category: 'commercial_showroom' | 'beverage_tabletop' | 'corporate_skyline' | 'indoor_drama' | 'action_comedy' | 'urban_neon' | 'stage';
+  category: 'commercial_showroom' | 'beverage_tabletop' | 'corporate_skyline' | 'indoor_drama' | 'action_comedy' | 'urban_neon' | 'stage' | 'wuxia' | 'xianxia';
   description: string;
   backgroundElements: string[];
   ambientLighting: string;
@@ -248,17 +248,17 @@ export const COMPREHENSIVE_SCENE_PRESETS: FusionScenePreset[] = [
     }
   },
 
-  // 3. MUSIC MV (音乐 MV / 概念舞台)
+  // 3. WUXIA FIGHT (武侠仙法 / 决战场地)
   {
-    id: 'cyberpunk_rain_street',
-    name: '赛博霓虹雨夜街道 · 积水倒影漫步 (Cyberpunk Street)',
-    genre: 'mv',
-    category: 'urban_neon',
-    description: '湿润反光的沥青路面，青蓝与琥珀金霓虹倒影，主体手持透明雨伞在雨中踱步，胸口标识与霓虹光波交相辉映',
-    backgroundElements: ['雨滴飞溅的霓虹街道', '透明轻质机械雨伞', '远处摩天大厦全息广告', '地面积水水面倒影'],
-    ambientLighting: '青蓝与金琥珀冷暖交错高饱和霓虹光',
+    id: 'wuxia_bamboo_rain',
+    name: '幽深暴雨竹林决战 · 积水倒影回马枪 (Bamboo Forest Battle)',
+    genre: 'wuxia_fight',
+    category: 'wuxia',
+    description: '湿润反光的青石与竹叶泥面，狂风撕扯竹林，主体持枪旋身破空，枪尖磕中飞刀爆出金色火星，双足在泥地上后退阻尼',
+    backgroundElements: ['暴风雨倾斜毛竹林', '满地湿滑竹叶积水水泊', '被枪尖拦腰穿透的粗壮毛竹', '空中激射飞刀轨迹'],
+    ambientLighting: '冷青暗调暴雨天光 + 金色交击火星高对比闪光',
     recommendedPose: 'walking_with_umbrella',
-    defaultActionPrompt: '中景街道镜头，铁蛋身披反光银白金属外壳，右胸赫然印有清晰字体【铁蛋】，在繁华赛博雨夜霓虹街头漫步，地面积水倒映出他健硕的机器人轮廓与蓝色发光面罩...',
+    defaultActionPrompt: '全景跟随镜头，银枪少侠身着短打劲装，双手持镔铁点钢枪，在幽深暴雨竹林中腰马合一旋枪，枪尖连磕飞刀爆出刺目火花，枪势直刺阴影...',
     eyeExpression: 'normal',
     thumbnailUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80',
     lightingColor: {
@@ -268,15 +268,15 @@ export const COMPREHENSIVE_SCENE_PRESETS: FusionScenePreset[] = [
     }
   },
   {
-    id: 'acoustic_concert_stage',
-    name: '暗场光束演唱舞台 · 丁达尔尘光 (Concert Stage)',
-    genre: 'mv',
-    category: 'stage',
-    description: '顶置锥形追光、微尘光丁达尔效应、深黑色背景，大片级别舞台质感',
-    backgroundElements: ['高空单点白色强光追光', '空气中悬浮光柱尘埃', '暗黑色吸光舞台地胶', '远处微弱舞台返听音响'],
-    ambientLighting: '高对比度垂直追光 (Spotlight) + 深黑背景',
+    id: 'wuxia_cliff_sword_altar',
+    name: '万丈悬崖古剑台 · 云海紫电破魔盾 (Ancient Sword Altar)',
+    genre: 'wuxia_fight',
+    category: 'xianxia',
+    description: '青罡石拼接巨大古剑台、镌刻古拙八卦符纹，四周云海翻涌紫电隐现，万剑归宗剑阵破空与魔煞重盾碰撞',
+    backgroundElements: ['古老悬空青罡石剑台', '翻涌万丈云海', '百柄虚幻白金小剑剑阵', '远山云层隐现的紫霄神雷'],
+    ambientLighting: '青霜剑芒冷光 + 云海漫射光 + 紫电爆闪',
     recommendedPose: 'standing_profile_looking_window',
-    defaultActionPrompt: '极高对比度暗场舞台，一束雪白锥形强光自上而下打在铁蛋身上，右胸【铁蛋】黑色汉字在光芒中深沉冷峻，机械关节与金属外壳流淌着银白辉光...',
+    defaultActionPrompt: '中景微仰拍，蜀山白袍剑仙双目泛金芒，剑指凌空极速变幻天罡剑诀，胸前秋水古剑青霜暴涨，百柄白金飞剑扇形排开化作剑气洪流呼啸破空...',
     thumbnailUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&q=80',
     lightingColor: {
       ambientHex: 'rgba(15, 23, 42, 0.05)',

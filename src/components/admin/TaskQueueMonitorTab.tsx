@@ -32,7 +32,7 @@ export const TaskQueueMonitorTab: React.FC = () => {
   // New task form state
   const [newShotId, setNewShotId] = useState('P05');
   const [newTitle, setNewTitle] = useState('铁蛋与老乡田埂挥手道别');
-  const [newGenre, setNewGenre] = useState<'short_drama' | 'mv' | 'commercial'>('short_drama');
+  const [newGenre, setNewGenre] = useState<'short_drama' | 'wuxia_fight' | 'commercial'>('short_drama');
   const [newDuration, setNewDuration] = useState<number>(10.0);
   const [newParentShot, setNewParentShot] = useState<string>('P04');
   const [newPrompt, setNewPrompt] = useState('中景跟随镜头，铁蛋站在金黄色麦田尽头，红色花布裤套随风摆动，向镜头滑稽有力地挥动铁手，表情屏显现笑脸Emoji...');

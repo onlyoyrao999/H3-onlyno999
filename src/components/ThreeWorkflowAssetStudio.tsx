@@ -2,9 +2,18 @@ import React, { useState, useEffect } from 'react';
 import {
   Layers, ShieldCheck, CheckCircle2, AlertTriangle, Eye, Sparkles, Sliders, RefreshCw,
   Cpu, Download, ArrowRight, UserCheck, Upload, Image as ImageIcon, Film, PlayCircle,
-  FastForward, Scissors, Check, Zap, EyeOff, Scale, HelpCircle, ArrowDownCircle, RefreshCcw
+  FastForward, Scissors, Check, Zap, EyeOff, Scale, HelpCircle, ArrowDownCircle, RefreshCcw,
+  LayoutGrid, Box, Swords, Copy, Plus, CheckCheck, Grid, MessageSquare
 } from 'lucide-react';
-import { DRAMA_ASSET_CARDS, AssetCard } from '../data/h3PipelineData';
+import {
+  DRAMA_ASSET_CARDS,
+  AssetCard,
+  NineGridSceneSheet,
+  NineGridSceneCell,
+  PropMultiGridCard,
+  INITIAL_NINE_GRID_SCENES,
+  INITIAL_PROP_MULTI_GRIDS
+} from '../data/h3PipelineData';
 import {
   sliceThreeViewTurnaround,
   render1To1SceneComposite,
@@ -14,6 +23,79 @@ import {
 } from '../utils/threeViewMattingEngine';
 
 export const ThreeWorkflowAssetStudio: React.FC = () => {
+  // Navigation Subtab: 9-Grid Spatial vs Props Library vs Tailframe Relay vs Character Matting
+  const [activeSubTab, setActiveSubTab] = useState<'nine_grid_spatial' | 'props_library' | 'tailframe_chain' | 'character_matting'>('nine_grid_spatial');
+
+  // 9-Grid Scene States (新故事第1次生图·九宫格空间大图)
+  const [nineGridScenes, setNineGridScenes] = useState<NineGridSceneSheet[]>(INITIAL_NINE_GRID_SCENES);
+  const [selectedNineGrid, setSelectedNineGrid] = useState<NineGridSceneSheet>(INITIAL_NINE_GRID_SCENES[0]);
+  const [selectedNineGridCell, setSelectedNineGridCell] = useState<NineGridSceneCell>(INITIAL_NINE_GRID_SCENES[0].cells[0]);
+  const [customScenePromptInput, setCustomScenePromptInput] = useState<string>('暴雨幽深毛竹林决战场，密密麻麻的苍翠毛竹被狂风撕扯倾斜，满地湿滑竹叶与水泊，偶发闪电照亮青石板');
+  const [isGeneratingNineGrid, setIsGeneratingNineGrid] = useState<boolean>(false);
+
+  // Prop Multi-Grid States (物品/道具多宫格资产库)
+  const [propCards, setPropCards] = useState<PropMultiGridCard[]>(INITIAL_PROP_MULTI_GRIDS);
+  const [selectedProp, setSelectedProp] = useState<PropMultiGridCard>(INITIAL_PROP_MULTI_GRIDS[0]);
+  const [isCreatingProp, setIsCreatingProp] = useState<boolean>(false);
+  const [newPropName, setNewPropName] = useState<string>('蜀山秋水古剑');
+  const [newPropMaterial, setNewPropMaterial] = useState<string>('三尺青霜寒铁 · 白金灵纹 · 悬浮青光');
+  const [newPropSubject, setNewPropSubject] = useState<string>('<Subject 2> 剑仙本命法宝');
+  const [newPropDesc, setNewPropDesc] = useState<string>('蜀山白袍剑仙本命飞剑，长三尺二寸，剑身如一汪秋水碧波，催动时激荡百柄虚幻白金小剑剑阵');
+  const [copiedPropSyntax, setCopiedPropSyntax] = useState<string | null>(null);
+
+  const handleGenerateNewNineGrid = () => {
+    setIsGeneratingNineGrid(true);
+    setTimeout(() => {
+      const newSheet: NineGridSceneSheet = {
+        id: `nine_grid_${Date.now()}`,
+        title: customScenePromptInput.slice(0, 16) + ' · 新九宫格空间大图',
+        sceneDescription: customScenePromptInput,
+        architecturalStyle: '文生图第一步·全空间九视角锚定',
+        lightingTone: '全局锁定首帧主光向与环境反光',
+        createdAt: new Date().toLocaleTimeString(),
+        gridCompositeUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80',
+        cells: [
+          { cellIndex: 1, name: '全景建立视角 (Wide Establishing)', cameraAngle: '平视极远景', shotType: 'Extreme Wide Shot', spatialRole: '交代整片空间体量与环境风貌', focalElements: ['空间轮廓', '环境天光', '地面基底'], previewUrl: 'https://images.unsplash.com/photo-1511497584788-87676104235f?w=300&q=80' },
+          { cellIndex: 2, name: '核心对决/主桌位 (Hero Arena)', cameraAngle: '水平中远景', shotType: 'Wide Arena Shot', spatialRole: '角色核心交手/对话主场地，反光与陈设最密集区域', focalElements: ['中央空地/主桌', '地面积水/木纹', '核心互动焦点'], previewUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&q=80' },
+          { cellIndex: 3, name: '45° 侧身透视 (Lateral Flank)', cameraAngle: '侧向45度中景', shotType: 'Medium Wide Shot', spatialRole: '展示两人拉开距离与兵刃/走势', focalElements: ['侧向纵深排列', '侧逆光带', '地面材质走势'], previewUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=300&q=80' },
+          { cellIndex: 4, name: '俯瞰鸟瞰空间图 (Overhead Map)', cameraAngle: '垂直下俯90度', shotType: 'Bird-Eye Floorplan', spatialRole: '严格锁定二人站位间距、物品摆放坐标与动线走向', focalElements: ['空间几何平面', '动线划痕', '物品相对坐标'], previewUrl: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=300&q=80' },
+          { cellIndex: 5, name: '物理碰撞/受击锚点 (Impact Anchor)', cameraAngle: '中近景特写', shotType: 'Close-Up Impact Focus', spatialRole: '兵刃相击或重要物品受力破坏焦点', focalElements: ['交击受力点', '碎石/火花迸溅', '材质断裂面'], previewUrl: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=300&q=80' },
+          { cellIndex: 6, name: '反拍景深机位 (Reverse Depth)', cameraAngle: '反向仰角/俯角', shotType: 'Reverse Depth View', spatialRole: '对手视角或出入口反向景深，防换镜背景漂移', focalElements: ['反向门廊/树冠', '逆向光源', '背侧景深层次'], previewUrl: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=300&q=80' },
+          { cellIndex: 7, name: '主光源投射面 (Main Rim Light)', cameraAngle: '侧光仰角机位', shotType: 'Dramatic Lighting Anchor', spatialRole: '锁定全场景唯一主光源投射方向与高光边缘', focalElements: ['主天光/吊灯光束', '高光轮廓线', '光斑衰减轨迹'], previewUrl: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=300&q=80' },
+          { cellIndex: 8, name: '暗部遮蔽与掩体角 (Shadow Depth)', cameraAngle: '极低角度贴地', shotType: 'Low Ground Worm Eye', spatialRole: '脚底蹬地受力与暗处阴影细节', focalElements: ['阴影地表面', '战靴踏地水花', '角落环境陈设'], previewUrl: 'https://images.unsplash.com/photo-1516214104703-d870798883c5?w=300&q=80' },
+          { cellIndex: 9, name: '远景环境空气延伸 (Atmospheric Depth)', cameraAngle: '长焦穿透远眺', shotType: 'Telephoto Depth Vista', spatialRole: '镜头纵深向大世界延伸，锁定非孤立影棚', focalElements: ['远山/建筑深景', '雾气/尘埃微粒', '大环境色调'], previewUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300&q=80' }
+        ]
+      };
+      setNineGridScenes([newSheet, ...nineGridScenes]);
+      setSelectedNineGrid(newSheet);
+      setSelectedNineGridCell(newSheet.cells[0]);
+      setIsGeneratingNineGrid(false);
+    }, 1200);
+  };
+
+  const handleCreatePropMultiGrid = () => {
+    const newProp: PropMultiGridCard = {
+      id: `prop_${Date.now()}`,
+      name: newPropName,
+      category: 'weapon',
+      material: newPropMaterial,
+      associatedSubject: newPropSubject,
+      description: newPropDesc,
+      compositeSheetUrl: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=600&auto=format&fit=crop&q=80',
+      isInAssetLibrary: true,
+      createdAt: new Date().toLocaleTimeString(),
+      angleViews: [
+        { angleName: '正面全貌立绘', description: '白底居中展示物品全尺寸轮廓与材质', previewUrl: 'https://images.unsplash.com/photo-1595590424283-b8f17842773f?w=300&q=80' },
+        { angleName: '45° 侧倾动势角', description: '展示三维立体厚度与刚体平直直线', previewUrl: 'https://images.unsplash.com/photo-1563089145-599997674d42?w=300&q=80' },
+        { angleName: '材质与细部微距特写', description: '极近景展示纹理、光泽与使用磨损痕迹', previewUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300&q=80' },
+        { angleName: '角色交互/握持使用态', description: '与角色手部或身躯发生物理接触状态', previewUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80' }
+      ]
+    };
+    setPropCards([newProp, ...propCards]);
+    setSelectedProp(newProp);
+    setIsCreatingProp(false);
+  };
+
   const [selectedCard, setSelectedCard] = useState<AssetCard>(DRAMA_ASSET_CARDS[1]); // Default to 男主合成卡
   const [isRunningAudit, setIsRunningAudit] = useState(false);
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
@@ -209,6 +291,429 @@ export const ThreeWorkflowAssetStudio: React.FC = () => {
         </div>
       </div>
 
+      {/* Subtab Navigation Bar */}
+      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-950 border border-slate-800 flex-wrap">
+        <button
+          onClick={() => setActiveSubTab('nine_grid_spatial')}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+            activeSubTab === 'nine_grid_spatial'
+              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <Grid className="w-4 h-4 text-cyan-400" />
+          <span>🏛️ 新故事·九宫格空间大图 (第1次生图)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('props_library')}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+            activeSubTab === 'props_library'
+              ? 'bg-gradient-to-r from-amber-600 to-red-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <Box className="w-4 h-4 text-amber-400" />
+          <span>🗡️ 物品与道具多宫格资产库 (随时生成/调取)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('tailframe_chain')}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+            activeSubTab === 'tailframe_chain'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <Scissors className="w-4 h-4 text-emerald-400" />
+          <span>🎞️ 15s 尾帧垫图跨段接力 (第362帧零接缝)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('character_matting')}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+            activeSubTab === 'character_matting'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-purple-400" />
+          <span>🧬 1:1 角色去棚底合成 (Qwen Edit 融合)</span>
+        </button>
+      </div>
+
+      {/* SUBTAB 1: 🏛️ 新故事·九宫格空间大图 (第1次生图) */}
+      {activeSubTab === 'nine_grid_spatial' && (
+        <div className="space-y-6">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-950 to-slate-900 border-2 border-cyan-500/40 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-cyan-500/30">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold border border-cyan-500/40">
+                    新故事第 1 次生图核心 SOP
+                  </span>
+                  <span className="text-xs text-slate-300 font-mono">
+                    已上传角色照 · 无场景图 ➔ 强制首发生图输出【九宫格空间关系大图】
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Grid className="w-5 h-5 text-cyan-400" />
+                  <span>九宫格多视角多景别场景空间图 (9-Grid Spatial Scene Master)</span>
+                </h3>
+                <p className="text-xs text-slate-400 max-w-4xl leading-relaxed">
+                  <strong>解决的核心痛点：</strong>传统文生图每次换机位都会改变门窗、光影和桌椅朝向。在第 1 次生图时直接生成包含「全景建立、反拍机位、侧向45°、垂直俯视平面图、核心交互位、门窗景深」在内的九宫格空间矩阵，彻底锁定三维空间几何关系，后续所有片段直接从中抠取机位！
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 px-3 py-1.5 rounded-lg border border-emerald-500/30 font-semibold">
+                  ✓ 空间透视对齐度 99.4%
+                </span>
+              </div>
+            </div>
+
+            {/* Prompt input and generation bar */}
+            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <label className="font-bold text-cyan-300 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span>输入新故事场景描述 (将自动扩展为 9 视角空间矩阵):</span>
+                </label>
+                <div className="flex items-center gap-1">
+                  <span className="text-slate-400 text-[11px]">快速预设:</span>
+                  {[
+                    { label: '暴雨毛竹林决战', text: '暴雨幽深毛竹林决战场，密密麻麻的苍翠毛竹被狂风撕扯倾斜，满地湿滑竹叶与水泊，偶发闪电照亮青石板' },
+                    { label: '80年代家用客厅', text: '80年代红砖筒子楼老房子，斑驳褪色木质方桌，墙上挂着1985年泛黄日历，老式暖水壶与搪瓷茶杯，暖黄色微尘斜射光线' },
+                    { label: '万丈悬崖古剑台', text: '万丈悬崖顶端的青罡石古剑台，四周翻涌云海与隐约紫电，地面镌刻古老八卦符纹，四周古剑林立' }
+                  ].map(p => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setCustomScenePromptInput(p.text)}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono transition"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <input
+                  type="text"
+                  value={customScenePromptInput}
+                  onChange={(e) => setCustomScenePromptInput(e.target.value)}
+                  className="flex-1 w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
+                  placeholder="输入场景描述..."
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateNewNineGrid}
+                  disabled={isGeneratingNineGrid}
+                  className="w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 transition"
+                >
+                  {isGeneratingNineGrid ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Grid className="w-4 h-4" />}
+                  <span>{isGeneratingNineGrid ? '正在计算九视角空间矩阵...' : '📸 第 1 次生图：生成九宫格空间大图'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3x3 Interactive Grid Matrix */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+              <div className="lg:col-span-8 space-y-3">
+                <div className="flex items-center justify-between text-xs font-mono text-slate-300 pb-1">
+                  <span className="font-bold text-white flex items-center gap-1.5">
+                    <span>{selectedNineGrid.title}</span>
+                  </span>
+                  <span className="text-cyan-400">点击任意格子展开空间定位细节</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-black/60 border border-cyan-500/30 aspect-square max-h-[520px]">
+                  {selectedNineGrid.cells.map((cell) => {
+                    const isSelected = selectedNineGridCell.cellIndex === cell.cellIndex;
+                    return (
+                      <div
+                        key={cell.cellIndex}
+                        onClick={() => setSelectedNineGridCell(cell)}
+                        className={`p-2 rounded-xl border relative overflow-hidden cursor-pointer transition-all flex flex-col justify-between group ${
+                          isSelected
+                            ? 'bg-cyan-950/60 border-cyan-400 ring-2 ring-cyan-500/50 shadow-lg'
+                            : 'bg-slate-900/80 border-slate-800 hover:border-slate-600'
+                        }`}
+                        style={{
+                          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url(${cell.previewUrl})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center'
+                        }}
+                      >
+                        <div className="flex items-center justify-between z-10">
+                          <span className="w-5 h-5 rounded-full bg-black/70 text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold flex items-center justify-center">
+                            {cell.cellIndex}
+                          </span>
+                          <span className="px-1.5 py-0.2 rounded bg-black/60 text-[9px] font-mono text-slate-300 backdrop-blur">
+                            {cell.cameraAngle}
+                          </span>
+                        </div>
+
+                        <div className="z-10 bg-black/80 p-1.5 rounded-lg border border-white/10 backdrop-blur space-y-0.5">
+                          <div className="text-[11px] font-bold text-white truncate">{cell.name}</div>
+                          <div className="text-[9px] text-cyan-300 font-mono truncate">{cell.shotType}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Cell Inspector & Prompt Syntax */}
+              <div className="lg:col-span-4 space-y-3">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="text-xs font-bold text-cyan-300 font-mono flex items-center gap-1.5">
+                      <span>机位 #{selectedNineGridCell.cellIndex} 空间锚点分析</span>
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
+                      {selectedNineGridCell.cameraAngle}
+                    </span>
+                  </div>
+
+                  <div className="w-full h-36 rounded-lg overflow-hidden border border-slate-700 relative">
+                    <img
+                      src={selectedNineGridCell.previewUrl}
+                      alt={selectedNineGridCell.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
+                      <span className="text-xs font-bold text-white">{selectedNineGridCell.name}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <div className="text-slate-400 text-[10px] font-mono">空间职能与透视关系:</div>
+                      <div className="text-slate-200 mt-0.5 font-medium leading-relaxed">
+                        {selectedNineGridCell.spatialRole}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-slate-400 text-[10px] font-mono">该机位焦点元素清单 (白名单):</div>
+                      <div className="flex items-center gap-1 flex-wrap mt-1">
+                        {selectedNineGridCell.focalElements.map((el, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 border border-slate-700">
+                            {el}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const syntax = `<Subject 4> 是九宫格场景大图中的第 ${selectedNineGridCell.cellIndex} 机位【${selectedNineGridCell.name}】：机位为${selectedNineGridCell.cameraAngle}，${selectedNineGridCell.spatialRole}。全程锁定主光源与建筑骨架，严禁添加非指定杂物。`;
+                        navigator.clipboard.writeText(syntax);
+                        setCopiedPropSyntax(`已复制机位 #${selectedNineGridCell.cellIndex} 语法！`);
+                        setTimeout(() => setCopiedPropSyntax(null), 2500);
+                      }}
+                      className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>复制此机位提示词语法 (注入 Subject 4)</span>
+                    </button>
+                    {copiedPropSyntax && (
+                      <div className="text-[10px] font-mono text-center text-emerald-400 animate-pulse">
+                        {copiedPropSyntax}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB 2: 🗡️ 关键物品与道具多宫格资产库 */}
+      {activeSubTab === 'props_library' && (
+        <div className="space-y-6">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-900 border-2 border-amber-500/40 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-amber-500/30">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-bold border border-amber-500/40">
+                    道具多宫格资产库
+                  </span>
+                  <span className="text-xs text-slate-300 font-mono">
+                    兵刃 / 道具 / 关键剧情物品 ➔ 一键生成多视角资产卡并永久归档
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Box className="w-5 h-5 text-amber-400" />
+                  <span>物品图多宫格资产库 (Props & Weapons Multi-Grid Bank)</span>
+                </h3>
+                <p className="text-xs text-slate-400 max-w-4xl leading-relaxed">
+                  <strong>用户指令核心保障：</strong>凡是故事中用到的武器（长枪、古剑、飞刀、重盾）或剧本道具（烟灰缸、搪瓷杯、账簿、密函），只要有新的出现，立即生成 4 视角多宫格（正面立绘、45°侧角、材质微距、角色握持态）存入资产库，方便后续第 2 段、第 3 段直至全剧无数片段随时调取！
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingProp(true)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transition"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ 新增道具多宫格生成</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal for creating new prop */}
+            {isCreatingProp && (
+              <div className="p-4 rounded-xl bg-slate-900 border-2 border-amber-500/60 space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>登记并生成新物品多宫格资产</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingProp(false)}
+                    className="text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕ 取消
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 text-[10px] block mb-1">道具/物品名称:</label>
+                    <input
+                      type="text"
+                      value={newPropName}
+                      onChange={(e) => setNewPropName(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+                      placeholder="如：蜀山秋水古剑"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-[10px] block mb-1">材质与外观特征:</label>
+                    <input
+                      type="text"
+                      value={newPropMaterial}
+                      onChange={(e) => setNewPropMaterial(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+                      placeholder="如：三尺青霜寒铁，剑刃流光"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-[10px] block mb-1">绑定角色/主体编号:</label>
+                    <input
+                      type="text"
+                      value={newPropSubject}
+                      onChange={(e) => setNewPropSubject(e.target.value)}
+                      className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+                      placeholder="如：<Subject 2> 剑仙"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 text-[10px] block mb-1">物品详细描述与戏剧作用:</label>
+                  <textarea
+                    value={newPropDesc}
+                    onChange={(e) => setNewPropDesc(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white"
+                    placeholder="详细描述物品的尺寸、比例、使用方式..."
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCreatePropMultiGrid}
+                    className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span>立即生成 4 视角多宫格并存入资产库</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Prop Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {propCards.map((prop) => {
+                const isSelected = selectedProp.id === prop.id;
+                return (
+                  <div
+                    key={prop.id}
+                    onClick={() => setSelectedProp(prop)}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer space-y-3 ${
+                      isSelected
+                        ? 'bg-amber-950/40 border-amber-500/70 ring-1 ring-amber-500/50 shadow-xl'
+                        : 'bg-slate-900/60 border-slate-800 hover:bg-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Swords className="w-4 h-4 text-amber-400" />
+                        <span className="text-xs font-bold text-white">{prop.name}</span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+                        4 视角多宫格
+                      </span>
+                    </div>
+
+                    {/* 4 Angle Views Grid */}
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {prop.angleViews.map((v, idx) => (
+                        <div key={idx} className="rounded-lg overflow-hidden border border-slate-800 relative group aspect-video">
+                          <img src={v.previewUrl} alt={v.angleName} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-1 text-[9px] text-white font-mono text-center opacity-90 group-hover:opacity-100">
+                            {v.angleName}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-1 text-[11px]">
+                      <div className="text-slate-400 font-mono">材质: <span className="text-slate-200">{prop.material}</span></div>
+                      <div className="text-slate-400 font-mono">主体: <span className="text-cyan-400">{prop.associatedSubject}</span></div>
+                      <p className="text-slate-400 line-clamp-2 leading-relaxed">{prop.description}</p>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-[10px] text-emerald-400 font-mono">✓ 已入库供后续调取</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const syntax = `${prop.associatedSubject} 兵刃/道具锁定：来源于道具资产库【${prop.name}】，材质为${prop.material}。长短尺寸与几何线条严格刚体锁定，不弯折变软，不穿模。`;
+                          navigator.clipboard.writeText(syntax);
+                          setCopiedPropSyntax(`已复制【${prop.name}】调取语法！`);
+                          setTimeout(() => setCopiedPropSyntax(null), 2500);
+                        }}
+                        className="px-2.5 py-1 rounded bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 text-[11px] font-mono flex items-center gap-1 transition"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>调取语法</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB 3 & 4: TAILFRAME RELAY & CHARACTER MATTING */}
+      {activeSubTab === 'tailframe_chain' && (
+        <div>
       {/* CORE SECTION 1: 15秒到16秒之间的接缝断层与无缝接力 (The 15s to 16s Transition Microscope) */}
       <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-emerald-500/40 shadow-2xl space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -418,8 +923,13 @@ export const ThreeWorkflowAssetStudio: React.FC = () => {
             </button>
           </div>
         </div>
+        </div>
       </div>
+      )}
 
+      {/* SUBTAB 4: 🧬 1:1 角色去棚底合成 (Qwen Edit 融合) */}
+      {activeSubTab === 'character_matting' && (
+      <div className="space-y-6">
       {/* CORE SECTION 2: 解决生图 1:1 问题与三视图差距过大 (1:1 Turnaround Fidelity & Discrepancy Elimination) */}
       <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-indigo-500/40 shadow-2xl space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -848,6 +1358,8 @@ export const ThreeWorkflowAssetStudio: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      )}
     </div>
   );
 };

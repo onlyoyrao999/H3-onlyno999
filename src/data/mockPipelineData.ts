@@ -1,9 +1,11 @@
-export interface LyricLine {
+export interface DialogueLine {
   id: string;
   start: number; // in seconds
   end: number;
+  speakerId: 'S1' | 'S2' | 'S3';
+  speakerName: string;
   text: string;
-  type: 'intro' | 'verse' | 'chorus' | 'bridge' | 'interlude' | 'outro';
+  type: 'establishing' | 'dialogue' | 'action_clash' | 'climax_declaration' | 'outro';
   confidence: number;
   isInstrumental?: boolean;
 }
@@ -17,7 +19,8 @@ export interface StoryboardShot {
   shotScale: 'ECU' | 'CU' | 'MCU' | 'MS' | 'MLS' | 'FS' | 'ELS' | 'Scenery' | 'Back-View';
   cameraMotion: string;
   isLipSync: boolean;
-  lyricsSnippet: string;
+  speakerId?: 'S1' | 'S2' | 'S3';
+  lyricsSnippet: string; // Used for dialogue subtitle / action prompt in timeline
   prompt: string;
   negativePrompt: string;
   fingerprint: string;
@@ -28,6 +31,16 @@ export interface StoryboardShot {
   lagMs?: number;
   correlation?: number;
   vocalDbfs?: number;
+  // 9-Grid Spatial Scene Integration
+  sceneGridCellId?: number; // 1~9
+  sceneGridCellName?: string;
+  // Multi-Grid Props Bank Integration
+  propId?: string;
+  propName?: string;
+  // Dry Vocal Stem Chaining (Post-Segment 1 extraction & cross-segment auto-reuse)
+  dryVocalAssetId?: string;
+  dryVocalStatus?: 'extracted_source' | 'auto_chained_inherited' | 'pending';
+  dryVocalSnippet?: string;
   useUploadedBackground?: boolean;
   backgroundImageUrl?: string;
   backgroundImageName?: string;
@@ -52,14 +65,14 @@ export interface GateDefinition {
 export const GATES_DATA: GateDefinition[] = [
   {
     id: 1,
-    name: "歌词提取与强制对齐",
-    shortName: "关 1: 歌词对齐",
+    name: "分镜剧本提取与对白强制对齐",
+    shortName: "关 1: 对白/招式对齐",
     phase: "准备阶段",
     stepIndex: 1,
     isHardBarrier: false,
-    description: "ASR 语音识别负责提供时间戳，官方歌词进行词级 Levenshtein 纠偏，确立全链唯一时间基准。",
+    description: "角色台词提取与起止秒数计算，短喝台词与招式时序锚定，确立全链唯一时间基准与防乱说话门禁。",
     reviewMode: "Machine + Human HTML",
-    keyChecks: ["ASR 待核错字纠偏", "间奏/Solo 器乐段独立打标", "词行首尾毫秒时间戳固化"]
+    keyChecks: ["短促台词(≤6字)短喝合规", "武侠/动作招式三段时序打标", "起止分镜毫秒时间戳固化"]
   },
   {
     id: 2,
@@ -85,14 +98,14 @@ export const GATES_DATA: GateDefinition[] = [
   },
   {
     id: 4,
-    name: "MV 分镜设计与切段",
+    name: "影视/短剧分镜设计与切段",
     shortName: "关 4: 分镜设计",
     phase: "结构设计",
     stepIndex: 4,
     isHardBarrier: false,
-    description: "切点严格落在歌词句尾或乐句呼吸点，严禁一词切半；分配景别、运镜方向与口型策略。",
+    description: "切点严格落在对白句尾或动作停歇点，严禁一词切半；分配景别、运镜方向与动作/对白口型策略。",
     reviewMode: "Machine + Human HTML",
-    keyChecks: ["切点严禁切断单句歌词", "运镜动势与乐句能量匹配", "初设口型与景别初审"]
+    keyChecks: ["切点严禁切断单句对白", "运镜动势与打斗/戏剧节奏匹配", "初设口型与景别初审"]
   },
   {
     id: 5,
@@ -101,16 +114,16 @@ export const GATES_DATA: GateDefinition[] = [
     phase: "核心门禁",
     stepIndex: 5,
     isHardBarrier: true,
-    description: "六段式结构 + 唱歌专用独立框架 + 嘴唇闭合正负双向压制。11 项机检全绿方可放行，计算防伪指纹。",
+    description: "MiniMax H3 六段式结构 + 动作打斗/对白专用框架 + 嘴唇闭合正负双向压制。11 项机检全绿方可放行，计算防伪指纹。",
     reviewMode: "Machine Hard Block",
     keyChecks: [
       "1. 六段式结构完整度 [SHOT] 至 [CAMERA_TECH]",
-      "2. 语言分层 (英文键名与参数，中文叙述与歌词)",
-      "3. 独立行 Singing vocals: \"...\"",
-      "4. 绝无 saying/talking 等对白动词",
+      "2. 语言分层 (英文键名与参数，中文叙述与对白)",
+      "3. 独立行 Speaking dialogue: <d>[语言] ...</d>",
+      "4. 绝无非规范口型动词",
       "5. 口型段仅限特写/中景 (ECU/CU/MCU/MS)",
       "6. 非口型段正向必须含 mouth naturally closed",
-      "7. 负向必须注入 text/subtitles/lyrics/watermark 防文字压制 (MV画面严禁任何文字出现)",
+      "7. 负向必须注入 text/subtitles/watermark 防印刷乱码压制",
       "8. 人物识别特征一致性锚点",
       "9. 无日夜/光照逻辑自相矛盾词",
       "10. 短窗口动作幅度适配度",
@@ -119,17 +132,17 @@ export const GATES_DATA: GateDefinition[] = [
   },
   {
     id: 6,
-    name: "音乐窗口与口型核对",
+    name: "对白窗口与段落时序核对",
     shortName: "关 6: 窗口硬门禁",
     phase: "核心门禁",
     stepIndex: 6,
     isHardBarrier: true,
-    description: "窗口首尾相接无间断、时长合计严格等于全曲长、口型景别完全一致、连续对口型<=3段、全片口型率~45%。",
+    description: "窗口首尾相接无间断、时长合计严格等于片段设定、口型景别完全一致、连续对口型<=3段、全片口型率~45%。",
     reviewMode: "Machine Hard Block",
     keyChecks: [
       "分镜数学闭环: Start_i == End_{i-1}",
       "严禁任何手工四舍五入秒数",
-      "总时长 ∑ == 母带音频时长",
+      "总时长 ∑ == 剧本设定时长",
       "非中近景严禁对口型",
       "连续对口型镜头 <= 3 个",
       "全片口型比例在 40% ~ 50% 黄金区间"
@@ -169,15 +182,17 @@ export const GATES_DATA: GateDefinition[] = [
   }
 ];
 
-export const DEMO_LYRICS: LyricLine[] = [
-  { id: "lyric_01", start: 0.0, end: 4.5, text: "[前奏器乐演奏 · 雨夜街道环境音]", type: "intro", confidence: 0.99, isInstrumental: true },
-  { id: "lyric_02", start: 4.5, end: 9.0, text: "夜色渐浓 街灯也渐渐熄灭", type: "verse", confidence: 0.98 },
-  { id: "lyric_03", start: 9.0, end: 13.5, text: "车窗倒映着 捉摸不透的侧脸", type: "verse", confidence: 0.95 },
-  { id: "lyric_04", start: 13.5, end: 17.8, text: "[电吉他轻扫与心跳底鼓过渡]", type: "interlude", confidence: 0.99, isInstrumental: true },
-  { id: "lyric_05", start: 17.8, end: 22.4, text: "如果时间能在此刻冻结成碎片", type: "chorus", confidence: 0.99 },
-  { id: "lyric_06", start: 22.4, end: 27.2, text: "我是否还能抓住 那未说完的誓言", type: "chorus", confidence: 0.96 },
-  { id: "lyric_07", start: 27.2, end: 32.0, text: "[尾奏渐弱 · 城市远景虚化]", type: "outro", confidence: 0.99, isInstrumental: true },
+export const DEMO_DIALOGUES: DialogueLine[] = [
+  { id: "line_01", start: 0.0, end: 4.5, speakerId: "S1", speakerName: "环境空镜", text: "[九宫格 S1 极远景全景建立 · 暴雨狂风吹竹林 / 老式红砖房]", type: "establishing", confidence: 0.99, isInstrumental: true },
+  { id: "line_02", start: 4.5, end: 9.0, speakerId: "S2", speakerName: "S2 女主/对手", text: "这道门，你今天若踏进去，就再无退路！", type: "dialogue", confidence: 0.98 },
+  { id: "line_03", start: 9.0, end: 13.5, speakerId: "S1", speakerName: "S1 主角/银枪", text: "退路？我自踏入这江湖起，就没打算回头！", type: "dialogue", confidence: 0.96 },
+  { id: "line_04", start: 13.5, end: 17.8, speakerId: "S1", speakerName: "动作音效", text: "[九宫格 S5 交击位 · 长枪回马磕飞刀 · 金铁激鸣火星迸溅]", type: "action_clash", confidence: 0.99, isInstrumental: true },
+  { id: "line_05", start: 17.8, end: 22.4, speakerId: "S1", speakerName: "S1 主角", text: "见她如见我！谁敢动她分毫，先问过我手中这杆枪！", type: "climax_declaration", confidence: 0.99 },
+  { id: "line_06", start: 22.4, end: 27.2, speakerId: "S2", speakerName: "S2 对手", text: "好大的口气！那就看你有没有这个本事！", type: "dialogue", confidence: 0.96 },
+  { id: "line_07", start: 27.2, end: 32.0, speakerId: "S1", speakerName: "定格收势", text: "[九宫格 S9 远景深 · 雨幕渐歇 · 二人对峙定格]", type: "outro", confidence: 0.99, isInstrumental: true },
 ];
+
+export const DEMO_LYRICS = DEMO_DIALOGUES; // Backward compatibility alias
 
 export const DEMO_STORYBOARD: StoryboardShot[] = [
   {
@@ -187,27 +202,35 @@ export const DEMO_STORYBOARD: StoryboardShot[] = [
     end: 4.5,
     duration: 4.5,
     shotScale: "ELS",
-    cameraMotion: "Slow crane down over mist-draped urban skyscrapers",
+    cameraMotion: "Slow panoramic tilt down matching 9-Grid S1 establishing view",
     isLipSync: false,
-    lyricsSnippet: "[前奏器乐演奏 · 雨夜街道环境音]",
+    speakerId: "S1",
+    lyricsSnippet: "[第1段视频起步 · 九宫格 S1 全景机位建立空间关系]",
+    sceneGridCellId: 1,
+    sceneGridCellName: "全景建立视角 (Wide Establishing)",
+    propId: "prop_wuxia_spear",
+    propName: "玄铁银枪 (道具多宫格)",
+    dryVocalStatus: "extracted_source",
+    dryVocalAssetId: "dry_vocal_p01_s1",
+    dryVocalSnippet: "S1 顾沉/银枪少侠 原始声源 (生成后立即提取干声)",
     prompt: `[SHOT]
-Shot scale: Extreme Long Shot. Camera motion: Slow high-altitude crane down drift through rain.
+Shot scale: Extreme Long Shot. Camera motion: Slow cinematic high-altitude crane down drift through storm.
 
 [SUBJECT]
-Silhouetted wet city boulevard viewed from above, tiny glowing taillights flowing like rivers of ruby and amber.
+<Subject 4> 是九宫格场景大图中的第 1 机位【全景建立视角】：平视极远景，暴雨幽深毛竹林决战场，密密麻麻苍翠毛竹在狂风中倾斜，地面湿滑积水与青石板。
 
 [ACTION]
-Vehicles crawling slowly in distant rainy haze. Mouth naturally closed, lips completely still, not moving along with vocals, no singing or talking.
+Atmospheric spatial establishment. Ground mist swirling, lightning flashing in distant sky. Mouth naturally closed, lips completely still, no talking.
 
 [ENVIRONMENT]
-A sprawling cyberpunk metropolis at 2 AM, dense skyscrapers illuminated by cyan neon signs, glistening asphalt.
+A grand cinematic wuxia bamboo forest battlefield under violent rainfall.
 
 [LIGHTING_COLOR]
-Moody cinematic neon teal and sodium-vapor orange reflections on wet surfaces, high dynamic contrast.
+Nocturnal blue storm backlight with sharp lightning rim lights, high dynamic range.
 
 [CAMERA_TECH]
-8k resolution, anamorphic lens flare, photorealistic cinematic film grain, 24fps motion blur.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, singing, mouth open, lip-sync, talking, speaking, vocalizing, open lips, bright daylight, cartoon, 3d render",
+8k resolution, cinematic anamorphic lens, photorealistic film grain, 24fps motion blur.`,
+    negativePrompt: "text, words, subtitles, watermark, logo, singing, mouth open, distorted perspective, extra structures, cartoon",
     fingerprint: "a93f1d8c0b24e671",
     pool: "spot_free",
     costUsd: 0.0,
@@ -223,37 +246,39 @@ Moody cinematic neon teal and sodium-vapor orange reflections on wet surfaces, h
     end: 9.0,
     duration: 4.5,
     shotScale: "CU",
-    cameraMotion: "Eye-level slow push-in with 50mm cinematic prime lens",
+    cameraMotion: "Eye-level slow push-in focusing on lead actor dialogue",
     isLipSync: true,
-    lyricsSnippet: "夜色渐浓 街灯也渐渐熄灭",
+    speakerId: "S2",
+    lyricsSnippet: "这道门，你今天若踏进去，就再无退路！",
+    sceneGridCellId: 2,
+    sceneGridCellName: "核心对决位 (Hero Arena)",
+    propId: "prop_wuxia_flying_knife",
+    propName: "子母飞刀 (道具多宫格)",
+    dryVocalStatus: "extracted_source",
+    dryVocalAssetId: "dry_vocal_p01_s2",
+    dryVocalSnippet: "S2 对白干声已提取 · 纯度 34.5dB SNR",
     prompt: `[SHOT]
-Shot scale: Close-Up. Camera motion: Slow subtle push-in tracking shot toward the vocalist's face.
+Shot scale: Close-Up. Camera motion: Slow subtle push-in tracking shot toward the speaker's face.
 
 [SUBJECT]
-A young Asian female singer in her early 20s, delicate porcelain skin, emotive glistening dark eyes, wearing an oversized dark crimson knit scarf.
+<Subject 2> 对手角色面容微冷，雨水自发丝滴落，眼神锋芒毕露。<Subject 4> 依托九宫格第 2 机位【核心对决位】背景。
 
 [ACTION]
-Standing near a misted vintage cafe window, gazing out with deep nostalgic longing.
-Singing vocals: "夜色渐浓 街灯也渐渐熄灭"
+Speaking dialogue: <d>[中文] 这道门，你今天若踏进去，就再无退路！</d> 咬字冷冽，胸腔微震。
 
 [ENVIRONMENT]
-Interior of a warm dim boutique cafe, rain streaks sliding down the glass beside her, blurred city neon bokeh in backdrop.
+Bamboo trees swaying behind her, heavy rain splashing on shoulders.
 
 [LIGHTING_COLOR]
-Soft amber interior key light caressing her cheekbones, moody blue backlight from the wet windowpane.
+Cool blue environmental rim light, crisp edge lighting emphasizing intense expression.
 
 [CAMERA_TECH]
-Photorealistic, cinematic Kodak Vision3 color profile, shallow depth of field, natural 24fps shutter cadence.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, cartoon, 3d render, distorted face, oversaturated, unnatural expressions, lowres",
+Photorealistic, cinematic Kodak Vision3 profile, shallow depth of field, natural 24fps.`,
+    negativePrompt: "text, subtitles, watermark, distorted face, oversaturated, cartoon, 3d render",
     fingerprint: "f428c90e55b172a3",
     pool: "spot_free",
     costUsd: 0.0,
     status: "completed",
-    useUploadedBackground: true,
-    backgroundImageName: "rainy_neon_street.png",
-    backgroundImageUrl: "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"360\" height=\"640\" viewBox=\"0 0 360 640\"><defs><linearGradient id=\"bg\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"%23090d16\"/><stop offset=\"50%\" stop-color=\"%230f172a\"/><stop offset=\"100%\" stop-color=\"%23020617\"/></linearGradient><linearGradient id=\"neonCyan\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"%2306b6d4\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"%230891b2\" stop-opacity=\"0.1\"/></linearGradient><linearGradient id=\"neonAmber\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\"><stop offset=\"0%\" stop-color=\"%23f59e0b\" stop-opacity=\"0.8\"/><stop offset=\"100%\" stop-color=\"%23d97706\" stop-opacity=\"0.1\"/></linearGradient></defs><rect width=\"360\" height=\"640\" fill=\"url(%23bg)\"/><path d=\"M0 380 L180 320 L360 380 L360 640 L0 640 Z\" fill=\"%23020617\"/><rect x=\"20\" y=\"160\" width=\"30\" height=\"180\" fill=\"url(%23neonCyan)\" rx=\"4\"/><rect x=\"310\" y=\"140\" width=\"30\" height=\"200\" fill=\"url(%23neonAmber)\" rx=\"4\"/><line x1=\"0\" y1=\"460\" x2=\"360\" y2=\"460\" stroke=\"%2338bdf8\" stroke-opacity=\"0.3\" stroke-width=\"2\"/></svg>",
-    imageGenStatus: "completed",
-    imageGenPlugin: "buddy-multimodal-generation",
     lagMs: 24.5,
     correlation: 0.88,
     vocalDbfs: -21.4
@@ -265,28 +290,35 @@ Photorealistic, cinematic Kodak Vision3 color profile, shallow depth of field, n
     end: 13.5,
     duration: 4.5,
     shotScale: "MCU",
-    cameraMotion: "Lateral slide along the passenger car window",
+    cameraMotion: "Lateral slide along fighting corridor with weapon in view",
     isLipSync: true,
-    lyricsSnippet: "车窗倒映着 捉摸不透的侧脸",
+    speakerId: "S1",
+    lyricsSnippet: "退路？我自踏入这江湖起，就没打算回头！",
+    sceneGridCellId: 3,
+    sceneGridCellName: "45° 侧身透视 (Lateral Flank)",
+    propId: "prop_wuxia_spear",
+    propName: "玄铁银枪 (道具多宫格)",
+    dryVocalStatus: "auto_chained_inherited",
+    dryVocalAssetId: "dry_vocal_p01_s1",
+    dryVocalSnippet: "✓ 已自动调取第1段 S1 磁性干声 (Node 34 绑定)",
     prompt: `[SHOT]
-Shot scale: Medium Close-Up. Camera motion: Smooth sideways tracking dolly alongside vehicle interior.
+Shot scale: Medium Close-Up. Camera motion: Smooth sideways tracking dolly alongside protagonist stance.
 
 [SUBJECT]
-The same female singer seated inside a vintage car, head turned three-quarters toward camera, looking at her faint reflection.
+<Subject 1> 主角横枪立马，黑发飞扬，眼神如电，单手握持 <Subject 3> 玄铁银枪。<Subject 4> 对应九宫格第 3 机位【45° 侧身透视】。
 
 [ACTION]
-Touching the cold windowpane gently with fingertips.
-Singing vocals: "车窗倒映着 捉摸不透的侧脸"
+Speaking dialogue: <d>[中文] 退路？我自踏入这江湖起，就没打算回头！</d> (自动继承第1段提取干声音色).
 
 [ENVIRONMENT]
-Night driving through rainy expressway tunnels, abstract neon light streaks gliding across the car leather interior.
+Dense bamboo stalks receding in 45-degree linear perspective, rain trails cascading down gun barrel.
 
 [LIGHTING_COLOR]
-Chiaroscuro lighting, rhythmically shifting tunnel illumination with emerald and warm tungsten hues.
+High-contrast side key light illuminating weapon metallic edge and rain mist.
 
 [CAMERA_TECH]
-8k, cinematic anamorphic bokeh, high textural realism, authentic low-light film look.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, deformed fingers, talking dialogue, flat lighting, CG rendering, jitter",
+8k, cinematic anamorphic bokeh, authentic textures, organic camera motion.`,
+    negativePrompt: "text, subtitles, watermark, deformed hands, broken weapon, cartoon, jitter",
     fingerprint: "b715e290dc419a64",
     pool: "priority_paid",
     costUsd: 0.35,
@@ -301,28 +333,36 @@ Chiaroscuro lighting, rhythmically shifting tunnel illumination with emerald and
     start: 13.5,
     end: 17.8,
     duration: 4.3,
-    shotScale: "Scenery",
-    cameraMotion: "Macro rack focus on raindrop ripples on glass",
+    shotScale: "MS",
+    cameraMotion: "Dynamic tracking of weapon clash impact point",
     isLipSync: false,
-    lyricsSnippet: "[电吉他轻扫与心跳底鼓过渡]",
+    speakerId: "S1",
+    lyricsSnippet: "[第2段核心高潮 · 调取九宫格 S5 受力交击与道具多宫格 P01/P02]",
+    sceneGridCellId: 5,
+    sceneGridCellName: "物理碰撞受力锚点 (Impact Anchor)",
+    propId: "prop_wuxia_flying_knife",
+    propName: "子母飞刀相击 (道具多宫格)",
+    dryVocalStatus: "auto_chained_inherited",
+    dryVocalAssetId: "dry_vocal_p01_s1",
+    dryVocalSnippet: "✓ 已自动调取第1段短喝音效干声",
     prompt: `[SHOT]
-Shot scale: Scenery. Camera motion: Extreme macro slow tilt down following water droplets.
+Shot scale: Medium Shot. Camera motion: Rapid whip-pan following the clash of cold steel.
 
 [SUBJECT]
-Glistening raindrops running down dark textured glass, distorting distant city traffic lights into abstract glowing circular bokeh.
+<Subject 1> 银枪枪尖与 <Subject 3> 破空飞刀在半空猛烈撞击！背景严丝合缝对齐九宫格第 5 机位【物理碰撞/受击锚点】。
 
 [ACTION]
-Natural water flow physics. Mouth naturally closed, lips completely still, not moving along with vocals, pure ambient visual.
+0~1.5s 枪尖甩出残月弧光；1.5~2.5s 枪尖硬磕飞刀，爆出金黄与炽白刺目金属撞击火花；2.5~4.3s 飞刀打着旋擦入竹身，木屑炸裂。
 
 [ENVIRONMENT]
-Urban window surface at midnight during a gentle downpour, atmospheric solitude.
+Impact epicenter with shattered bamboo splinters and rain droplets blasted outwards in radial shockwave.
 
 [LIGHTING_COLOR]
-Deep sapphire blue ambient with sparkling gold specular highlights inside each falling water droplet.
+Sudden burst of blinding white-orange spark flashes illuminating rain curtains.
 
 [CAMERA_TECH]
-Arri Alexa 65 look, ultra-sharp macro focus, buttery smooth motion blur, natural optics.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, singing, mouth open, lip-sync, talking, speaking, human face, cartoon, digital noise",
+Arri Alexa 65 look, ultra-sharp shutter, zero hallucinated extra blades.`,
+    negativePrompt: "text, subtitles, watermark, distorted limbs, rubber weapons, cartoon, blur",
     fingerprint: "c3098f12a441e88d",
     pool: "spot_free",
     costUsd: 0.0,
@@ -337,29 +377,36 @@ Arri Alexa 65 look, ultra-sharp macro focus, buttery smooth motion blur, natural
     start: 17.8,
     end: 22.4,
     duration: 4.6,
-    shotScale: "MS",
-    cameraMotion: "Dynamic orbit shot around the singer as rain falls around her",
+    shotScale: "MCU",
+    cameraMotion: "Rotational orbit around hero holding position",
     isLipSync: true,
-    lyricsSnippet: "如果时间能在此刻冻结成碎片",
+    speakerId: "S1",
+    lyricsSnippet: "见她如见我！谁敢动她分毫，先问过我手中这杆枪！",
+    sceneGridCellId: 7,
+    sceneGridCellName: "主光源投射面 (Main Rim Light)",
+    propId: "prop_wuxia_spear",
+    propName: "玄铁银枪 (道具多宫格)",
+    dryVocalStatus: "auto_chained_inherited",
+    dryVocalAssetId: "dry_vocal_p01_s1",
+    dryVocalSnippet: "✓ 第3段自动继承第1段干声指纹 (vp_s1_7b29a1)",
     prompt: `[SHOT]
-Shot scale: Medium Shot. Camera motion: Fluid circular 45-degree rotational orbit around the character.
+Shot scale: Medium Close-Up. Camera motion: Fluid circular 45-degree rotational orbit around protagonist.
 
 [SUBJECT]
-The young female vocalist holding a transparent clear umbrella, singing with powerful emotional crescendo.
+<Subject 1> 主角立于暴雨之中，枪尖斜指地面，雨水在枪尖汇成水线滴落。背景对齐九宫格第 7 机位【主光源投射面】。
 
 [ACTION]
-Singing with heartfelt passion, chest rising and falling with melodic phrasing.
-Singing vocals: "如果时间能在此刻冻结成碎片"
+Speaking dialogue: <d>[中文] 见她如见我！谁敢动她分毫，先问过我手中这杆枪！</d> 音色 100% 继承自第 1 段提取干声。
 
 [ENVIRONMENT]
-An empty wet pedestrian bridge suspended above a neon-lit crossroad, droplets shimmering under lamplight.
+Rain curtain illuminated by oblique moonlight beam filtering through bamboo canopy.
 
 [LIGHTING_COLOR]
-Vibrant cinematic rim lighting, backlit rain particles creating a glowing halo, dramatic contrast.
+Vibrant cinematic rim lighting, backlit rain particles creating a glowing halo.
 
 [CAMERA_TECH]
-8k cinematic mastery, 35mm master prime, volumetric fog, Kodak 5219 film grain.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, mouth closed, speaking tone, plastic look, floating limbs, stuttering frames",
+8k cinematic mastery, 35mm master prime, volumetric mist, crisp textures.`,
+    negativePrompt: "text, subtitles, watermark, mouth closed, stuttering frames, 3d CGI",
     fingerprint: "d891e4f3aa274c10",
     pool: "priority_paid",
     costUsd: 0.45,
@@ -375,28 +422,35 @@ Vibrant cinematic rim lighting, backlit rain particles creating a glowing halo, 
     end: 27.2,
     duration: 4.8,
     shotScale: "CU",
-    cameraMotion: "Intimate handheld tremor facing the vocalist's expression",
+    cameraMotion: "Intimate handheld tremor facing the antagonist reaction",
     isLipSync: true,
-    lyricsSnippet: "我是否还能抓住 那未说完的誓言",
+    speakerId: "S2",
+    lyricsSnippet: "好大的口气！那就看你有没有这个本事！",
+    sceneGridCellId: 6,
+    sceneGridCellName: "反拍景深机位 (Reverse Depth)",
+    propId: "prop_wuxia_flying_knife",
+    propName: "子母飞刀 (道具多宫格)",
+    dryVocalStatus: "auto_chained_inherited",
+    dryVocalAssetId: "dry_vocal_p01_s2",
+    dryVocalSnippet: "✓ 第3段自动继承第1段 S2 冷厉干声音色",
     prompt: `[SHOT]
-Shot scale: Close-Up. Camera motion: Subtle intimate handheld camera breathing motion.
+Shot scale: Close-Up. Camera motion: Subtle intimate camera breathing motion on antagonist.
 
 [SUBJECT]
-The singer looking directly into camera with soulful resonance, a solitary raindrop trailing down her cheek like a tear.
+<Subject 2> 对手神色震动随即化为更甚的冷厉，九宫格第 6 机位【反拍景深机位】完美交代其背后退路。
 
 [ACTION]
-Delivering the climactic lyric with gentle mouth shaping and vocal vibrato.
-Singing vocals: "我是否还能抓住 那未说完的誓言"
+Speaking dialogue: <d>[中文] 好大的口气！那就看你有没有这个本事！</d> 语速骤快，尾音如刀。
 
 [ENVIRONMENT]
-Surrounding city lights fading into misty circular bokeh spheres, intimate focal isolation.
+Bamboo forest background blurring into soft rain bokeh spheres.
 
 [LIGHTING_COLOR]
-Warm golden hour glow from an unseen neon shop window warmly illuminating her expression against deep indigo night.
+High key contrast with flash of distant thunder lighting her cold eyes.
 
 [CAMERA_TECH]
-8k photorealistic perfection, organic camera shake, natural facial skin micro-textures.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, talking, speech dialogue, wooden expression, low resolution, warped features",
+8k photorealistic perfection, organic camera breathing, natural skin micro-textures.`,
+    negativePrompt: "text, subtitles, watermark, flat lighting, lowres, warped limbs",
     fingerprint: "e10287a93cd561f2",
     pool: "priority_paid",
     costUsd: 0.45,
@@ -412,27 +466,35 @@ Warm golden hour glow from an unseen neon shop window warmly illuminating her ex
     end: 32.0,
     duration: 4.8,
     shotScale: "Back-View",
-    cameraMotion: "Slow pull-back revealing her silhouette vanishing into the mist",
+    cameraMotion: "Slow pull-back revealing endless bamboo depth and stance",
     isLipSync: false,
-    lyricsSnippet: "[尾奏渐弱 · 城市远景虚化]",
+    speakerId: "S1",
+    lyricsSnippet: "[第4段定格收势 · 调取九宫格 S9 远景深 · 全剧无数段落无缝调取]",
+    sceneGridCellId: 9,
+    sceneGridCellName: "远景环境空气延伸 (Atmospheric Depth)",
+    propId: "prop_wuxia_spear",
+    propName: "玄铁银枪 (道具多宫格)",
+    dryVocalStatus: "auto_chained_inherited",
+    dryVocalAssetId: "dry_vocal_p01_s1",
+    dryVocalSnippet: "✓ 无限段落干声库全局就绪",
     prompt: `[SHOT]
-Shot scale: Back-View. Camera motion: Slow cinematic pull-back widening the frame.
+Shot scale: Back-View. Camera motion: Slow cinematic pull-back widening the frame into misty distance.
 
 [SUBJECT]
-Back of the singer walking away along the rainy bridge into the soft city haze, dark trench coat flowing.
+Back of <Subject 1> standing motionless like a lone pine in the bamboo forest, long spear upright beside him. 对齐九宫格第 9 机位【远景环境空气延伸】。
 
 [ACTION]
-Walking serenely into the distance. Mouth naturally closed, lips completely still, not moving along with vocals, no turning around.
+Rain steadily pouring down, character standing motionless in battle-ready poise. Mouth naturally closed, lips completely still, no talking.
 
 [ENVIRONMENT]
-Wide bridge vanishing into luminous midnight mist, city skyline glowing faintly like a distant dream.
+Vast bamboo sea receding into dense midnight fog, raindrops splashing on wet rocks.
 
 [LIGHTING_COLOR]
-Cool blue and lavender nocturnal tones, soft gradient diffusion, atmospheric perspective.
+Deep nocturnal cyan and emerald palette, volumetric atmospheric fog diffusion.
 
 [CAMERA_TECH]
 Cinema-grade wide lens, pristine composition, slow shutter filmic trail.`,
-    negativePrompt: "text, words, subtitles, lyrics, captions, watermark, logo, typography, singing, mouth open, lip-sync, talking, turning around, cartoon, 3d CGI",
+    negativePrompt: "text, subtitles, watermark, singing, mouth open, lip-sync, talking, cartoon, 3d CGI",
     fingerprint: "92bb34f820c78914",
     pool: "spot_free",
     costUsd: 0.0,
@@ -446,9 +508,9 @@ Cinema-grade wide lens, pristine composition, slow shutter filmic trail.`,
 export const SIX_IRON_RULES_LIST = [
   {
     code: "A",
-    title: "音乐是唯一的时间基准（全曲伴奏贯穿保活）",
-    tagline: "Music As Single Source of Truth & Continuous BGM",
-    rule: "段长、切点、口型位置全部由歌词时间轴推导。严禁先画画面再去凑音乐。前奏、间奏、尾奏由母带器乐伴奏 100% 贯通铺底，绝不出现任何静音断层（没有歌曲的地方也保持伴奏流淌）。歌词一行不能少，间奏Solo必须显式成段打标。"
+    title: "台词与动作时序是唯一基准（干声贯穿提取与多段复用）",
+    tagline: "Script & Timing As Truth & Dry Vocal Reuse",
+    rule: "段长、切点、口型位置由台词对白与招式时序严格推导。第1段视频生成后立即提取纯净干声，方便第2段及后续无数段落自动调取。前奏、间奏、尾声保持环境声场或全片贯穿底轨铺底，绝不出现任何静音断层。"
   },
   {
     code: "B",
@@ -458,15 +520,15 @@ export const SIX_IRON_RULES_LIST = [
   },
   {
     code: "C",
-    title: "唱歌不是说台词（画面纯净铁律，严禁出现文字）",
-    tagline: "Singing Is Not Dialogue & Zero Screen Text",
-    rule: "发声行以 Singing vocals: \"...\" 独立成行，绝不能写成 saying/talking。MV画面严禁任何文字出现：正向禁止索要字幕文字，负向必须强行封死 text, words, subtitles, lyrics, watermark，杜绝画面出现乱码。非口型段正向强行注入 mouth naturally closed，负向必须压制 lip-sync。"
+    title: "台词严格遵循 <d> 规范（画面纯净铁律，严禁出现乱码印字）",
+    tagline: "Dialogue Syntax & Zero Screen Text Trap",
+    rule: "发声行以 <d>[语言] ...</d> 形式编写。成片画面严禁任何印刷体文字与字幕混入：正向禁止索要字幕文字，负向必须强行封死 text, words, subtitles, lyrics, watermark，杜绝画面出现乱码。非口型段正向强行注入 mouth naturally closed，负向必须压制 lip-sync。"
   },
   {
     code: "D",
     title: "不猜字段、不烧冤枉钱",
     tagline: "Defensive Execution",
-    rule: "先拉取后端工作流节点表体检再改造，契约不过拒绝提交。共享模板清洗残留人脸音轨。母带和人物图指纹缓存只传一次。双池真钱封顶独立开关。"
+    rule: "先拉取后端工作流节点表体检再改造，契约不过拒绝提交。共享模板清洗残留人脸音轨。九宫格场景图与道具多宫格资产只传一次入库复用。双池真钱封顶独立开关。"
   },
   {
     code: "E",
@@ -478,6 +540,6 @@ export const SIX_IRON_RULES_LIST = [
     code: "F",
     title: "会自己长本事 (自演进闭环)",
     tagline: "Self-Evolution & Institutional Memory",
-    rule: "每支 MV 必做复盘三问。经验必须同时落到代码、文档、自检清单三处方可发版。具备自动快照和回滚防线。"
+    rule: "每个短剧/动作片段必做复盘三问。经验必须同时落到代码、文档、自检清单三处方可发版。具备自动快照和回滚防线。"
   }
 ];
