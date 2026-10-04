@@ -11,8 +11,20 @@ RunningHub OpenAPI v2 & MiniMax H3 官流终极版官方调度器 (rh_h3.py)
    - 第 1 段 10 秒成片渲染完成后，自动从视频中抽取高清晰度末尾关键帧/人物特征图，自动作为第 2 段的 ref_image_0 (<Picture 1>)
 3. 🎨 缺失角色/物体文生图补全 (Qwen T2I Fallback):
    - 若第 2 段引入了第 1 段中不存在的新角色/物体，自动调用文生图生成卡片作为 ref_image_1 (<Picture 2>)
-4. 多图主体参考矩阵 (Node 137, 139, 167, 173, 172, 171)
-5. 视频参考通道 (Node 175 VHS_LoadVideo)
+4. 多图主体参考矩阵 (Node 137, 139)
+5. 视频参考通道：线上发布版无此节点（见下方 2026-10-04 图谱普查注记）
+
+【2026-10-04 线上图谱普查修正（字段级探针 1002 发、零扣费实证）】
+工作流 2104734128657756162 当前发布版可寻址节点仅 24 个，字段实存如下：
+  138=value（提示词）/ 132=value（时长）/ 115=aspect_ratio / 129=noise_seed
+  图片槽只有两个：137=image（ref_image_0）、139=image（ref_image_1）
+旧版映射中的 167/173/172/171（image）、175（video）、174（audio）节点
+在线上发布版全部不存在（派发会 803 NODE_INFO_MISMATCH，已实测）。
+线上音频输入为 148=audio：该路必须喂——有参考音频喂参考音频，
+没有参考音频时一律灌与分段等长的静音 WAV（44.1kHz），不许留空、不许省略。
+实证（2026-10-04）：未灌 148 的回片整条预置音乐床漏入（YAMNet music=1.00）；
+灌 10 秒静音的回片无音轨（音乐床堵死，但也没有原生拟音）。
+接力方案随之改为：定妆卡（137）＋上一段实际尾帧（139）双图接力。
 """
 
 import os
@@ -86,9 +98,9 @@ class RunningHubH3UltimateDispatcher:
         """
         从 10 秒视频成片中提取【原生配音声纹干声卡】(Native Voice Timbre Relay)：
         直接抽取第 1 段中 H3 自行合成的角色对白与声纹 (shot_id -> ref_audio_{shot_id}.wav)，
-        自动作为第 2 段的 Node 174 (audio / ref_audio) 输入，实现全剧 100% 绝对一致的声纹接力！
+        自动作为第 2 段的 Node 148 (audio / ref_audio) 输入，实现全剧 100% 绝对一致的声纹接力！
         """
-        print(f"[*] 正在从视频 {video_path_or_url} 中精准提取【原生配音声纹干声卡】(Node 174 接力)...")
+        print(f"[*] 正在从视频 {video_path_or_url} 中精准提取【原生配音声纹干声卡】(Node 148 接力)...")
         output_dir = "workspace"
         os.makedirs(output_dir, exist_ok=True)
         out_audio_path = os.path.join(output_dir, f"ref_audio_{shot_id}.wav")
@@ -226,21 +238,27 @@ class RunningHubH3UltimateDispatcher:
             node_info_list.append({"nodeId": "137", "fieldName": "image", "fieldValue": ref_image_0})
         if ref_image_1:
             node_info_list.append({"nodeId": "139", "fieldName": "image", "fieldValue": ref_image_1})
-        if ref_image_2:
-            node_info_list.append({"nodeId": "167", "fieldName": "image", "fieldValue": ref_image_2})
-        if ref_image_3:
-            node_info_list.append({"nodeId": "173", "fieldName": "image", "fieldValue": ref_image_3})
-        if ref_image_4:
-            node_info_list.append({"nodeId": "172", "fieldName": "image", "fieldValue": ref_image_4})
-        if ref_image_5:
-            node_info_list.append({"nodeId": "171", "fieldName": "image", "fieldValue": ref_image_5})
-
-        if ref_video_prev:
-            print(f"[+] 启用视频参考 (Video-to-Video Continuity): 载入上一段视频 {ref_video_prev} -> Node 175")
-            node_info_list.append({"nodeId": "175", "fieldName": "video", "fieldValue": ref_video_prev})
+        # 2026-10-04 图谱普查修正：旧映射的 167/173/172/171 图片槽、175 视频、
+        # 174 音频节点在线上发布版均不存在，传入必 803。故 ref_image_2~5、
+        # ref_video_prev 不再落节点，仅告警忽略（参数保留兼容签名）。
+        # 音频改落线上实存的 Node 148（field=audio）：该路必须喂——有参考
+        # 音频喂 ref_audio；无参考音频必须由调用方传与分段等长的静音 WAV
+        # （44.1kHz）作 ref_audio。留空会漏入工作流预置音乐床（已实测）。
+        _unsupported = []
+        if ref_image_2: _unsupported.append("ref_image_2(旧 Node 167)")
+        if ref_image_3: _unsupported.append("ref_image_3(旧 Node 173)")
+        if ref_image_4: _unsupported.append("ref_image_4(旧 Node 172)")
+        if ref_image_5: _unsupported.append("ref_image_5(旧 Node 171)")
+        if ref_video_prev: _unsupported.append("ref_video_prev(旧 Node 175)")
+        if _unsupported:
+            print(f"[!] 以下参考输入在线上图谱无对应节点、已忽略: {', '.join(_unsupported)}")
 
         if ref_audio:
-            node_info_list.append({"nodeId": "174", "fieldName": "audio", "fieldValue": ref_audio})
+            print(f"[+] 音频输入 -> Node 148 (audio): {ref_audio}")
+            node_info_list.append({"nodeId": "148", "fieldName": "audio", "fieldValue": ref_audio})
+        else:
+            print("[!] 警告: Node 148 未喂音频——线上实测回片会漏入预置音乐床；"
+                  "无参考音频时必须传与分段等长的静音 WAV（44.1kHz）作 ref_audio。")
 
         payload = {
             "apiKey": self.api_key,
